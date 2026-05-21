@@ -34,7 +34,7 @@ Guidelines:
 
 ## Design Decisions & Rationale
 
-- **Structured System Persona:** Restricting Claude to a "SaaS CFO" prevents it from writing overly verbose, conversational, or sycophantic intros (like *"Congratulations on using AI tools! Here is a summary..."*). Financial reports need to be direct and quantitative.
+- **Structured System Persona:** Restricting Gemini to a "SaaS CFO" prevents it from writing overly verbose, conversational, or sycophantic intros (like *"Congratulations on using AI tools! Here is a summary..."*). Financial reports need to be direct and quantitative.
 - **Strict Length Cap:** Startup founders are busy. A summary over 100 words decreases readability.
 - **Dynamic Token Injection:** Passing the raw list of recommendations as JSON gives the LLM the exact context of what the engine did, permitting it to write personalized sentences like *"Consolidating your Cursor and Copilot licensing is the primary step to reducing your coding spend."*
 

@@ -79,21 +79,21 @@ This log tracks the progression of **SpendScope** across 7 distinct calendar day
 **Blockers / what I'm stuck on:**
 - Handling database insert errors when a generated random slug conflicts. Added a recursive slug unique retry routine in the API.
 **Plan for tomorrow:**
-- Integrate the Anthropic Claude API for dynamic summaries, create the public shareable routes, and set up metadata tags.
+- Integrate the Gemini API for dynamic summaries, create the public shareable routes, and set up metadata tags.
 
 ---
 
 ## Day 6 — 2026-05-19
 **Hours worked:** 4
 **What I did:**
-- Integrated the `@anthropic-ai/sdk` client and programmed the `/api/summary` endpoint.
+- Integrated the Gemini summary route with a deterministic fallback and programmed the `/api/summary` endpoint.
 - Structured the CFO system prompt and user context template.
 - Built the dynamic routing layout `src/app/[slug]/page.tsx` for clean sharing, rendering audit results with all PII deleted.
 - Set up custom Meta/Open Graph parameters for Twitter cards.
 **What I learned:**
-- Claude 3.5 Sonnet needs very specific format instructions to avoid outputting extra headers or markdown symbols that throw off the visual cards.
+- Gemini needs very specific format instructions to avoid outputting extra headers or markdown symbols that throw off the visual cards.
 **Blockers / what I'm stuck on:**
-- Resolving API timeout exceptions from Anthropic Sonnet when cold-starting serverless functions. Fixed by compiling a dynamic template fallback that returns instantly if the SDK errors.
+- Resolving API timeout exceptions from LLM calls when cold-starting serverless functions. Fixed by compiling a dynamic template fallback that returns instantly if Gemini is unavailable.
 **Plan for tomorrow:**
 - Conduct production build checks, fix compilation lint warnings, write tests documentation, and complete the write-ups.
 

@@ -15,7 +15,7 @@ Here are the 5 critical trade-offs made during the development of SpendScope:
 
 ### 1. Deterministic Math Engine vs. LLM Calculations
 - **Choice:** Built a rigid, TypeScript-based audit calculator (`src/lib/auditEngine.ts`) and reserved the LLM solely for descriptive strategy narration.
-- **Alternatives Considered:** Sending the user's stack as a raw string to Claude 3.5 and requesting both math calculations and summary text.
+- **Alternatives Considered:** Sending the user's stack as a raw string to Gemini and requesting both math calculations and summary text.
 - **Consequences:** This decision guarantees absolute mathematical precision on pricing math and seat-limit edge cases (e.g. Claude's 5-seat minimum), preventing LLM hallucinations from returning incorrect savings values. The trade-off is that adding support for a new AI tool requires writing custom calculation code instead of relying on prompt instructions.
 
 ### 2. Value-First Funnel vs. Instant Sign-up Gates
@@ -56,7 +56,9 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-supabase-url.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 RESEND_API_KEY=re_your_resend_key
-ANTHROPIC_API_KEY=sk-ant-your-anthropic-key
+GEMINI_API_KEY=your-gemini-api-key
+UPSTASH_REDIS_REST_URL=https://your-upstash-redis.upstash.io
+UPSTASH_REDIS_REST_TOKEN=your-upstash-rest-token
 ```
 *(Note: If environment keys are omitted, the application will degrade gracefully to mock mode and local-template calculations.)*
 
