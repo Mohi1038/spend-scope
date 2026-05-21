@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit } from "@/lib/rateLimit";
+
 const geminiApiKey = process.env.GEMINI_API_KEY || "";
 // Prefer the higher-capability 2.5 flash model by default when available
 const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
@@ -27,6 +29,14 @@ function generateFallbackSummary(
 
 export async function POST(request: Request) {
   try {
+    const rateLimit = await checkRateLimit("summary", request);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many summary requests. Please try again shortly." },
+        { status: 429, headers: rateLimit.headers }
+      );
+    }
+
     const body = await request.json();
     const { auditResult, teamSize, primaryUseCase } = body;
 
@@ -52,7 +62,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         summary: fallbackSummary,
         source: "fallback_template",
-      });
+      }, { headers: rateLimit.headers });
     }
 
     // Build LLM Prompt
@@ -123,14 +133,14 @@ export async function POST(request: Request) {
       return NextResponse.json({
         summary,
         source: "gemini",
-      });
+      }, { headers: rateLimit.headers });
     } catch (aiError) {
       console.error("Gemini API Error:", aiError);
       // Fail gracefully to the fallback template
       return NextResponse.json({
         summary: fallbackSummary,
         source: "fallback_error_recovery",
-      });
+      }, { headers: rateLimit.headers });
     }
   } catch (error) {
     console.error("Summary API critical error:", error);

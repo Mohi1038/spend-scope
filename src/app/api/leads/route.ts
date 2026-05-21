@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabaseClient";
+import { checkRateLimit } from "@/lib/rateLimit";
 import { Resend } from "resend";
 
 const resendApiKey = process.env.RESEND_API_KEY || "";
@@ -7,6 +8,14 @@ const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 export async function POST(request: Request) {
   try {
+    const rateLimit = await checkRateLimit("leads", request);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many lead submissions. Please try again shortly." },
+        { status: 429, headers: rateLimit.headers }
+      );
+    }
+
     const body = await request.json();
     const { email, companyName, role, newsletterOptIn, auditSlug, websiteVerify } = body;
 
@@ -16,7 +25,7 @@ export async function POST(request: Request) {
       return NextResponse.json({
         success: true,
         message: "Request successfully processed.", // Return success so bot doesn't retry
-      });
+      }, { headers: rateLimit.headers });
     }
 
     if (!email || !auditSlug) {
@@ -127,11 +136,14 @@ export async function POST(request: Request) {
       console.log(`[MOCK EMAIL TO ${email}] SUBJECT: ${emailSubject}`);
     }
 
-    return NextResponse.json({
-      success: true,
-      emailSent,
-      message: "Lead recorded successfully.",
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        emailSent,
+        message: "Lead recorded successfully.",
+      },
+      { headers: rateLimit.headers }
+    );
   } catch (error) {
     console.error("Leads API internal error:", error);
     return NextResponse.json(

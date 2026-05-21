@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { runAudit } from "@/lib/auditEngine";
 import { getSupabaseAdmin } from "@/lib/supabaseClient";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // Helper to generate a random 8-character slug
 function generateShortSlug(): string {
@@ -14,6 +15,14 @@ function generateShortSlug(): string {
 
 export async function POST(request: Request) {
   try {
+    const rateLimit = await checkRateLimit("audit", request);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many audit requests. Please try again shortly." },
+        { status: 429, headers: rateLimit.headers }
+      );
+    }
+
     const body = await request.json();
     const { tools, teamSize, primaryUseCase } = body;
 
@@ -72,10 +81,13 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({
-      slug,
-      auditResult,
-    });
+    return NextResponse.json(
+      {
+        slug,
+        auditResult,
+      },
+      { headers: rateLimit.headers }
+    );
   } catch (error) {
     console.error("API error in audit creation:", error);
     return NextResponse.json(
