@@ -3,8 +3,16 @@
 import React, { useState, useEffect } from "react";
 import { PRICING_DATA } from "@/lib/pricingData";
 import { runAudit, InputToolState, AuditRecommendation } from "@/lib/auditEngine";
-import AOS from "aos";
-import "aos/dist/aos.css";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { AnimatePresence, animate, motion } from "framer-motion";
 import { 
   Plus, 
   Trash2, 
@@ -21,11 +29,40 @@ import {
   Briefcase
 } from "lucide-react";
 
-export default function SpendAuditorPage() {
-  useEffect(() => {
-    AOS.init({ duration: 800, once: true });
-  }, []);
+function AnimatedCurrency({
+  value,
+  className,
+  suffix = "",
+}: {
+  value: number;
+  className?: string;
+  suffix?: string;
+}) {
+  const [displayValue, setDisplayValue] = useState(value);
+  const latestValue = React.useRef(value);
 
+  useEffect(() => {
+    const controls = animate(latestValue.current, value, {
+      duration: 0.8,
+      ease: "easeOut",
+      onUpdate: (latest) => {
+        latestValue.current = latest;
+        setDisplayValue(latest);
+      },
+    });
+
+    return () => controls.stop();
+  }, [value]);
+
+  return (
+    <span className={className}>
+      ${Math.round(displayValue).toLocaleString()}
+      {suffix}
+    </span>
+  );
+}
+
+export default function SpendAuditorPage() {
   // --- Form State ---
   const [teamSize, setTeamSize] = useState<number>(5);
   const [primaryUseCase, setPrimaryUseCase] = useState<string>("coding");
@@ -43,6 +80,7 @@ export default function SpendAuditorPage() {
   const [isAudited, setIsAudited] = useState<boolean>(false);
   const [isSubmittingLead, setIsSubmittingLead] = useState<boolean>(false);
   const [leadCaptured, setLeadCaptured] = useState<boolean>(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState<boolean>(false);
   const [generatingSummary, setGeneratingSummary] = useState<boolean>(false);
   const [auditSlug, setAuditSlug] = useState<string>("");
   const [shareUrl, setShareUrl] = useState<string>("");
@@ -191,7 +229,7 @@ export default function SpendAuditorPage() {
     } catch (err) {
       console.error("Failed to run full audit API pipeline:", err);
       // Fallback
-      setAiSummary("Unable to connect to Claude. Using static results.");
+      setAiSummary("Unable to connect to Gemini. Using static results.");
     } finally {
       setGeneratingSummary(false);
     }
@@ -220,6 +258,7 @@ export default function SpendAuditorPage() {
 
       if (res.ok) {
         setLeadCaptured(true);
+        setExportDialogOpen(false);
       } else {
         console.error("Lead capture returned non-OK status");
       }
@@ -234,11 +273,21 @@ export default function SpendAuditorPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow flex flex-col justify-start">
       
       {/* Hero Header Section */}
-      <div className="text-center max-w-3xl mx-auto mb-16">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold mb-6">
+      <motion.div
+        className="text-center max-w-3xl mx-auto mb-16"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.55, ease: "easeOut" }}
+      >
+        <motion.div
+          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold mb-6"
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.12, duration: 0.35 }}
+        >
           <Sparkles className="w-3.5 h-3.5" />
           <span>INSTANT AI SOFTWARE BUDGET AUDITING</span>
-        </div>
+        </motion.div>
         <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
           Audit Your AI Spend.<br />
           <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
@@ -248,10 +297,10 @@ export default function SpendAuditorPage() {
         <p className="text-gray-400 text-lg sm:text-xl font-normal leading-relaxed">
           Input your AI tools. Discover plan downgrades, seat mismatches, and redundant licensing. We find the savings, and Credex helps you capture them.
         </p>
-      </div>
+      </motion.div>
 
       {/* Main Grid: Form Left, Quick Math Right */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16" data-aos="fade-up">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
         
         {/* Form Inputs Component */}
         <div className="lg:col-span-8 space-y-6">
@@ -325,14 +374,20 @@ export default function SpendAuditorPage() {
                 <p className="text-gray-500">No tools added yet. Add a tool to start the audit calculations.</p>
               </div>
             ) : (
-              <div className="space-y-4">
+              <AnimatePresence initial={false}>
+                <div className="space-y-4">
                 {configuredTools.map((tool, index) => {
                   const pricing = PRICING_DATA[tool.toolId];
                   if (!pricing) return null;
                   
                   return (
-                    <div 
+                    <motion.div
+                      layout
                       key={tool.toolId}
+                      initial={{ opacity: 0, y: 12, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                      transition={{ duration: 0.22, ease: "easeOut" }}
                       className="p-5 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-purple-500/20 transition-all"
                     >
                       <div className="space-y-1 min-w-[150px]">
@@ -396,28 +451,31 @@ export default function SpendAuditorPage() {
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
-                    </div>
+                    </motion.div>
                   );
                 })}
-              </div>
+                </div>
+              </AnimatePresence>
             )}
 
             {/* Calculate Button */}
             <div className="pt-4">
-              <button
+              <Button
                 onClick={handleCalculateAudit}
                 disabled={configuredTools.length === 0}
-                className="w-full py-4 rounded-xl bg-gradient-to-r from-purple-600 to-cyan-500 hover:from-purple-500 hover:to-cyan-400 text-white font-extrabold text-lg flex items-center justify-center gap-2 shadow-[0_4px_20px_rgba(168,85,247,0.25)] hover:shadow-[0_4px_25px_rgba(168,85,247,0.35)] disabled:opacity-50 disabled:shadow-none transition-all cursor-pointer"
+                variant="gradient"
+                size="lg"
+                className="w-full text-lg"
               >
                 <span>Run Instant Spend Audit</span>
                 <ArrowRight className="w-5 h-5" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Real-time Math Summary Sidebar */}
-        <div className="lg:col-span-4 space-y-6" data-aos="fade-left">
+        <div className="lg:col-span-4 space-y-6">
           <div className="glass-panel rounded-2xl p-6 border border-white/10 relative overflow-hidden">
             {/* Ambient glowing background orb */}
             <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl -mr-6 -mt-6"></div>
@@ -436,7 +494,10 @@ export default function SpendAuditorPage() {
               <div>
                 <p className="text-gray-500 text-sm font-semibold uppercase">Calculated Savings</p>
                 <div className="text-3xl font-black text-cyan-400 mt-1 flex items-center gap-2">
-                  ${runAudit(configuredTools, teamSize, primaryUseCase).potentialMonthlySavings.toLocaleString()}/mo
+                  <AnimatedCurrency
+                    value={runAudit(configuredTools, teamSize, primaryUseCase).potentialMonthlySavings}
+                    suffix="/mo"
+                  />
                   <TrendingDown className="w-6 h-6 text-cyan-400" />
                 </div>
               </div>
@@ -445,7 +506,10 @@ export default function SpendAuditorPage() {
                 <div>
                   <p className="text-gray-500 text-xs font-semibold uppercase">Annual Savings Opportunity</p>
                   <p className="text-xl font-bold text-purple-400 mt-0.5">
-                    ${(runAudit(configuredTools, teamSize, primaryUseCase).potentialMonthlySavings * 12).toLocaleString()}/yr
+                    <AnimatedCurrency
+                      value={runAudit(configuredTools, teamSize, primaryUseCase).potentialMonthlySavings * 12}
+                      suffix="/yr"
+                    />
                   </p>
                 </div>
                 
@@ -462,8 +526,16 @@ export default function SpendAuditorPage() {
       </div>
 
       {/* --- Audit Results Section --- */}
+      <AnimatePresence>
       {isAudited && auditResults && (
-        <div id="results" className="space-y-8 scroll-mt-24">
+        <motion.div
+          id="results"
+          className="space-y-8 scroll-mt-24"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 16 }}
+          transition={{ duration: 0.45, ease: "easeOut" }}
+        >
           <hr className="border-white/5 my-12" />
 
           {/* Hero Banner Savings */}
@@ -492,7 +564,7 @@ export default function SpendAuditorPage() {
               <div className="flex flex-col items-start md:items-end justify-center min-w-[200px]">
                 <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Total Savings</p>
                 <div className="text-5xl sm:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 mt-1">
-                  ${auditResults.potentialAnnualSavings.toLocaleString()}
+                  <AnimatedCurrency value={auditResults.potentialAnnualSavings} />
                 </div>
                 <p className="text-purple-400 text-sm font-semibold tracking-wider uppercase mt-1">potential annual cut</p>
               </div>
@@ -506,7 +578,7 @@ export default function SpendAuditorPage() {
                 <Sparkles className="w-5 h-5 text-purple-400" />
                 AI Spend Strategy Review
               </h3>
-              <span className="text-xs uppercase tracking-widest text-gray-500 font-bold">Claude 3.5 Sonnet</span>
+              <span className="text-xs uppercase tracking-widest text-gray-500 font-bold">Gemini</span>
             </div>
 
             {generatingSummary ? (
@@ -535,8 +607,12 @@ export default function SpendAuditorPage() {
                   const isCredex = rec.toolId === "credex";
                   
                   return (
-                    <div 
+                    <motion.div
+                      layout
                       key={i}
+                      initial={{ opacity: 0, x: -12 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04, duration: 0.24 }}
                       className={`p-6 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 ${
                         isCredex 
                           ? "border-purple-500/30 bg-purple-950/10 shadow-[0_0_15px_rgba(168,85,247,0.05)]" 
@@ -560,7 +636,7 @@ export default function SpendAuditorPage() {
                         <span className="text-xs text-gray-500 font-bold uppercase">Monthly Cut</span>
                         <span className="text-2xl font-black text-cyan-400 mt-0.5">-${rec.monthlySavings}/mo</span>
                       </div>
-                    </div>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -615,6 +691,21 @@ export default function SpendAuditorPage() {
                   )}
                 </div>
               ) : (
+                <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="gradient" size="lg" className="w-full">
+                      <span>Export Audit Report</span>
+                      <Share2 className="w-4 h-4" />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Save & Export Audit</DialogTitle>
+                      <DialogDescription>
+                        Receive the audit link by email and let Credex know where to send savings follow-up.
+                      </DialogDescription>
+                    </DialogHeader>
+
                 <form onSubmit={handleCaptureLead} className="space-y-4">
                   {/* Honeypot field (hidden) */}
                   <input
@@ -676,10 +767,10 @@ export default function SpendAuditorPage() {
                     </label>
                   </div>
 
-                  <button
+                  <Button
                     type="submit"
                     disabled={isSubmittingLead}
-                    className="w-full py-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-base flex items-center justify-center gap-2 shadow-[0_4px_15px_rgba(168,85,247,0.2)] disabled:opacity-50 disabled:shadow-none transition-all cursor-pointer"
+                    className="w-full"
                   >
                     {isSubmittingLead ? (
                       <>
@@ -692,8 +783,10 @@ export default function SpendAuditorPage() {
                         <Share2 className="w-4 h-4" />
                       </>
                     )}
-                  </button>
+                  </Button>
                 </form>
+                  </DialogContent>
+                </Dialog>
               )}
             </div>
 
@@ -714,7 +807,7 @@ export default function SpendAuditorPage() {
                 </div>
 
                  {/* Real Calendly Embed */}
-                 <div className="border border-white/10 rounded-xl overflow-hidden bg-neutral-950/60 p-4" data-aos="fade-up">
+                 <div className="border border-white/10 rounded-xl overflow-hidden bg-neutral-950/60 p-4">
                    <div className="w-full h-[630px]">
                      <iframe src="https://calendly.com/credex/15min" width="100%" height="100%" frameBorder="0"></iframe>
                    </div>
@@ -735,22 +828,29 @@ export default function SpendAuditorPage() {
                   </p>
                 </div>
                 
+                <Button
+                  asChild
+                  variant="outline"
+                  size="lg"
+                  className="w-full"
+                >
                 <a 
                   href="https://credex.rocks" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="w-full py-3.5 rounded-xl border border-white/10 hover:border-purple-500/30 hover:bg-purple-500/5 text-gray-200 hover:text-white font-bold text-base flex items-center justify-center gap-2 transition-all"
                 >
                   <span>Explore Credex Inventory</span>
                   <ArrowRight className="w-4 h-4" />
                 </a>
+                </Button>
               </div>
             )}
 
           </div>
 
-        </div>
+        </motion.div>
       )}
+      </AnimatePresence>
 
     </div>
   );
