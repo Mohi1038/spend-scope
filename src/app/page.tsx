@@ -2,32 +2,69 @@
 
 import React, { useState, useEffect } from "react";
 import { PRICING_DATA } from "@/lib/pricingData";
-import { runAudit, InputToolState, AuditRecommendation } from "@/lib/auditEngine";
+import { runAudit, InputToolState, AuditRecommendation, AuditResult } from "@/lib/auditEngine";
+import { AuditReportSection } from "@/components/AuditReportClient";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { AnimatePresence, animate, motion } from "framer-motion";
-import { 
-  Plus, 
-  Trash2, 
-  Sparkles, 
-  Calendar, 
-  Share2, 
-  Check, 
-  ArrowRight, 
-  Loader2, 
-  HelpCircle,
+import {
+  Plus,
+  Trash2,
+  Sparkles,
+  Check,
+  ArrowRight,
+  Loader2,
   TrendingDown,
-  Mail,
-  Building,
-  Briefcase
+  Briefcase,
+  AlertTriangle,
+  HelpCircle,
+  Activity,
+  Layers,
+  Percent,
+  CheckCircle2
 } from "lucide-react";
+
+// Inline metadata for Plan Awareness
+const PLAN_INFO: Record<string, Record<string, { desc: string; bestFor: string; warning?: string }>> = {
+  cursor: {
+    hobby: { desc: "Basic code completions and limited chat.", bestFor: "Hobbyists trying out Cursor." },
+    pro: { desc: "Unlimited fast completions, index search, and advanced model requests.", bestFor: "Professional developers.", warning: "If seats > 5, consider Business tier for centralized admin control." },
+    business: { desc: "Centralized billing, usage dashboards, and custom security controls.", bestFor: "Growing startup engineering teams." },
+    enterprise: { desc: "Custom SLA, SSO, data retention, and custom contracts.", bestFor: "Enterprise security compliance." }
+  },
+  copilot: {
+    individual: { desc: "Standard autocompletions & chat inside mainstream IDEs.", bestFor: "Individual freelancers.", warning: "Individual plans cannot be managed under corporate centralized accounts." },
+    business: { desc: "Organization policies, seat management, and IP protection rules.", bestFor: "Commercial dev groups." },
+    enterprise: { desc: "Custom knowledge index, repository-focused chat answers, and security controls.", bestFor: "Large scaled engineering teams." }
+  },
+  claude: {
+    free: { desc: "Access to standard web model with base rate limits.", bestFor: "Casual text and research." },
+    pro: { desc: "5x usage relative to free, early access to new versions.", bestFor: "Heavy LLM users." },
+    team: { desc: "Collaborative canvas, high message limits, admin dashboards.", bestFor: "Business workspaces.", warning: "Requires minimum of 5 seats ($150/mo minimum commitment)." },
+    enterprise: { desc: "SSO, higher context windows, admin compliance controls.", bestFor: "Large enterprise operations." },
+    api: { desc: "Developer API keys on pay-as-you-go consumption rates.", bestFor: "App builders and automation scripts." }
+  },
+  chatgpt: {
+    plus: { desc: "Full access to GPT-4o, custom GPT builders, and beta features.", bestFor: "Power users." },
+    team: { desc: "Central workspace, admin console, no training on workspace data.", bestFor: "SMB workspaces.", warning: "Requires minimum of 2 seats ($60/mo minimum commitment)." },
+    enterprise: { desc: "SSO, unlimited fast GPT-4o, administrative tools, API discounts.", bestFor: "Enterprise security groups." },
+    api: { desc: "Direct pay-as-you-go developer tokens.", bestFor: "Custom scripts and backend services." }
+  },
+  openai_api: {
+    payg: { desc: "Pay-as-you-go access to GPT models. Fully usage-based pricing.", bestFor: "Custom automation pipelines and high volume scripts." }
+  },
+  anthropic_api: {
+    payg: { desc: "Pay-as-you-go access to Claude models. Fully usage-based pricing.", bestFor: "Custom integrations requiring advanced reasoning." }
+  },
+  gemini: {
+    pro: { desc: "Free workspace tier access with standard limits.", bestFor: "Testing and casual tasks." },
+    ultra: { desc: "Advanced Ultra capabilities with high limits and Google One bundle.", bestFor: "Power users wanting Google workspace integration." },
+    api: { desc: "Developer console tokens with free tier limits available.", bestFor: "App builders scaling with Gemini API." }
+  },
+  windsurf: {
+    pro: { desc: "Native Agentic completions, IDE commands, and Codeium search.", bestFor: "Professional developers using Windsurf IDE." },
+    team: { desc: "Shared policies, centralized organization management.", bestFor: "Collaborative developer teams." }
+  }
+};
 
 function AnimatedCurrency({
   value,
@@ -43,7 +80,7 @@ function AnimatedCurrency({
 
   useEffect(() => {
     const controls = animate(latestValue.current, value, {
-      duration: 0.8,
+      duration: 0.6,
       ease: "easeOut",
       onUpdate: (latest) => {
         latestValue.current = latest;
@@ -66,7 +103,7 @@ export default function SpendAuditorPage() {
   // --- Form State ---
   const [teamSize, setTeamSize] = useState<number>(5);
   const [primaryUseCase, setPrimaryUseCase] = useState<string>("coding");
-  
+
   // Array of tools currently configured in the user's stack
   const [configuredTools, setConfiguredTools] = useState<InputToolState[]>([
     { toolId: "cursor", planId: "pro", seats: 5, monthlySpend: 100 },
@@ -75,6 +112,10 @@ export default function SpendAuditorPage() {
 
   // UI state for adding new tools
   const [availableToolsToAdd, setAvailableToolsToAdd] = useState<string[]>([]);
+  const [selectedAddId, setSelectedAddId] = useState<string>("");
+
+  // Expand plan info inline index
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
 
   // --- UI Flow & Loading States ---
   const [isAudited, setIsAudited] = useState<boolean>(false);
@@ -84,7 +125,7 @@ export default function SpendAuditorPage() {
   const [generatingSummary, setGeneratingSummary] = useState<boolean>(false);
   const [auditSlug, setAuditSlug] = useState<string>("");
   const [shareUrl, setShareUrl] = useState<string>("");
-  
+
   // --- API Outputs ---
   const [aiSummary, setAiSummary] = useState<string>("");
   const [auditResults, setAuditResults] = useState<any>(null);
@@ -95,6 +136,18 @@ export default function SpendAuditorPage() {
   const [role, setRole] = useState<string>("");
   const [newsletterOptIn, setNewsletterOptIn] = useState<boolean>(true);
   const [websiteVerify, setWebsiteVerify] = useState<string>(""); // Honeypot
+
+  // --- Progressive Auditing Checklist State ---
+  const [isSimulating, setIsSimulating] = useState<boolean>(false);
+  const [simulationStep, setSimulationStep] = useState<number>(0);
+  const simulationChecklist = [
+    "Analyzing workspace team context and workflow profiles",
+    "Checking seat utilization thresholds per license",
+    "Validating pricing plans against retail rate tables",
+    "Evaluating cross-tool redundant licenses (Cursor/Copilot)",
+    "Running Credex volume discount eligibility checks",
+    "Formatting financial optimization recommendation matrix"
+  ];
 
   // Load state from LocalStorage on mount
   useEffect(() => {
@@ -129,15 +182,14 @@ export default function SpendAuditorPage() {
 
   // --- Operations ---
   const handleAddTool = (toolId: string) => {
+    if (!toolId) return;
     const pricing = PRICING_DATA[toolId];
     if (!pricing) return;
 
-    // Grab first non-free plan as a default
     const planKeys = Object.keys(pricing.plans);
     const defaultPlanKey = planKeys.find(k => k !== "free" && k !== "hobby") || planKeys[0];
     const plan = pricing.plans[defaultPlanKey];
 
-    // Estimate initial spend
     const defaultSpend = plan.isApiDirect ? 100 : plan.pricePerUserMonth * teamSize;
 
     setConfiguredTools([
@@ -149,12 +201,18 @@ export default function SpendAuditorPage() {
         monthlySpend: defaultSpend,
       },
     ]);
+    setSelectedAddId("");
   };
 
   const handleRemoveTool = (index: number) => {
     const updated = [...configuredTools];
     updated.splice(index, 1);
     setConfiguredTools(updated);
+    if (expandedRow === index) {
+      setExpandedRow(null);
+    } else if (expandedRow !== null && expandedRow > index) {
+      setExpandedRow(expandedRow - 1);
+    }
   };
 
   const handleUpdateTool = (index: number, fields: Partial<InputToolState>) => {
@@ -170,7 +228,7 @@ export default function SpendAuditorPage() {
         newToolState.monthlySpend = plan.pricePerUserMonth * newToolState.seats;
       }
     }
-    
+
     // If seats change, recalculate price (except API)
     if (fields.seats !== undefined) {
       const pricing = PRICING_DATA[current.toolId];
@@ -185,18 +243,34 @@ export default function SpendAuditorPage() {
   };
 
   // Submit stack to API and retrieve slug
-  const handleCalculateAudit = async () => {
-    setIsAudited(true);
-    setGeneratingSummary(true);
+  const handleCalculateAudit = () => {
+    setIsSimulating(true);
+    setSimulationStep(0);
+    setIsAudited(false);
     setLeadCaptured(false);
     setAuditSlug("");
 
-    // Calculate local values instantly
+    // Simulate checklist progression
+    let step = 0;
+    const interval = setInterval(() => {
+      step++;
+      setSimulationStep(step);
+      if (step >= simulationChecklist.length) {
+        clearInterval(interval);
+        triggerAuditAPI();
+      }
+    }, 350);
+  };
+
+  const triggerAuditAPI = async () => {
+    setIsSimulating(false);
+    setIsAudited(true);
+    setGeneratingSummary(true);
+
     const localResult = runAudit(configuredTools, teamSize, primaryUseCase);
     setAuditResults(localResult);
 
     try {
-      // 1. Save audit to db and get slug
       const res = await fetch("/api/audit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -213,7 +287,6 @@ export default function SpendAuditorPage() {
         const host = typeof window !== "undefined" ? window.location.origin : "";
         setShareUrl(`${host}/${auditData.slug}`);
 
-        // 2. Fetch AI-generated summary
         const summaryRes = await fetch("/api/summary", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -228,8 +301,7 @@ export default function SpendAuditorPage() {
       }
     } catch (err) {
       console.error("Failed to run full audit API pipeline:", err);
-      // Fallback
-      setAiSummary("Unable to connect to Gemini. Using static results.");
+      setAiSummary("Unable to connect to Gemini. Using static local calculation result.");
     } finally {
       setGeneratingSummary(false);
     }
@@ -259,8 +331,6 @@ export default function SpendAuditorPage() {
       if (res.ok) {
         setLeadCaptured(true);
         setExportDialogOpen(false);
-      } else {
-        console.error("Lead capture returned non-OK status");
       }
     } catch (err) {
       console.error("Failed to capture lead:", err);
@@ -269,98 +339,118 @@ export default function SpendAuditorPage() {
     }
   };
 
+  // Live real-time stats before auditing
+  const totalSpend = configuredTools.reduce((acc, t) => acc + t.monthlySpend, 0);
+  const liveAudit = runAudit(configuredTools, teamSize, primaryUseCase);
+  const potentialSavings = liveAudit.potentialMonthlySavings;
+  const annualSavings = liveAudit.potentialAnnualSavings;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow flex flex-col justify-start">
       
-      {/* Hero Header Section */}
+      {/* Premium Stripe-like Header */}
       <motion.div
-        className="text-center max-w-3xl mx-auto mb-16"
-        initial={{ opacity: 0, y: 18 }}
+        className="text-center max-w-4xl mx-auto mb-16 space-y-6"
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.55, ease: "easeOut" }}
+        transition={{ duration: 0.45 }}
       >
-        <motion.div
-          className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold mb-6"
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ delay: 0.12, duration: 0.35 }}
-        >
-          <Sparkles className="w-3.5 h-3.5" />
-          <span>INSTANT AI SOFTWARE BUDGET AUDITING</span>
-        </motion.div>
-        <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-white mb-6 leading-tight">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300 text-xs font-semibold uppercase tracking-wider">
+          <Sparkles className="w-3.5 h-3.5 text-gray-400" />
+          <span>AI Budget Explanation Engine</span>
+        </div>
+        
+        <h1 className="text-4xl sm:text-6xl font-display font-extrabold tracking-tight text-white leading-tight">
           Audit Your AI Spend.<br />
-          <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
-            Stop Overpaying Retail.
+          <span className="text-gray-300">
+            Uncover Hidden Logic &amp; Savings.
           </span>
         </h1>
-        <p className="text-gray-400 text-lg sm:text-xl font-normal leading-relaxed">
-          Input your AI tools. Discover plan downgrades, seat mismatches, and redundant licensing. We find the savings, and Credex helps you capture them.
+        
+        <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+          SaaS vendors rely on over-provisioned seats and redundant integrations to boost their margins. Drop your stack details below to model immediate downgrades and secure pre-negotiated credits.
         </p>
       </motion.div>
 
-      {/* Main Grid: Form Left, Quick Math Right */}
+      {/* Main Form Dashboard */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
         
-        {/* Form Inputs Component */}
+        {/* Left Column: Form Table */}
         <div className="lg:col-span-8 space-y-6">
+          
+          {/* Workspace context card */}
           <div className="glass-panel rounded-2xl p-6 sm:p-8 space-y-6">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <span className="text-purple-400">01.</span> Your Workspace Context
-            </h2>
-            
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/10">
+                <span className="text-xs font-bold text-gray-400 font-mono">01</span>
+              </div>
+              <h2 className="text-xl font-display font-bold text-white">Workspace Profile</h2>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">Team Size (Active Developers/Managers)</label>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-400">
+                  Team Size (Active Licenses)
+                </label>
                 <input
                   type="number"
                   min={1}
                   max={500}
                   value={teamSize}
                   onChange={(e) => setTeamSize(Math.max(1, parseInt(e.target.value, 10) || 1))}
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-medium"
+                  className="w-full px-4 py-3 rounded-lg border border-[#1F1F22] bg-[#0A0A0C] text-white text-sm font-medium"
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-semibold text-gray-300 mb-2">Primary AI Use Case</label>
+              <div className="space-y-2">
+                <label className="block text-sm font-medium text-gray-400">
+                  Primary Stack Focus
+                </label>
                 <select
                   value={primaryUseCase}
                   onChange={(e) => setPrimaryUseCase(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg bg-white/5 border border-white/10 text-white font-medium"
+                  className="w-full px-4 py-3 rounded-lg border border-[#1F1F22] bg-[#0A0A0C] text-white text-sm font-medium"
                 >
-                  <option value="coding" className="bg-neutral-900">Software Development & Coding</option>
-                  <option value="writing" className="bg-neutral-900">Content Writing & Marketing</option>
-                  <option value="data" className="bg-neutral-900">Data Analysis & Modeling</option>
-                  <option value="research" className="bg-neutral-900">Research & Knowledge Work</option>
-                  <option value="mixed" className="bg-neutral-900">General/Mixed Team Purposes</option>
+                  <option value="coding">Software Development & Engineering</option>
+                  <option value="writing">Marketing & Copywriting</option>
+                  <option value="data">Data Analysis & Statistics</option>
+                  <option value="research">Academic & Business Research</option>
+                  <option value="mixed">Mixed/General Team Operations</option>
                 </select>
               </div>
             </div>
           </div>
 
+          {/* Subscriptions spreadsheet grid */}
           <div className="glass-panel rounded-2xl p-6 sm:p-8 space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-                <span className="text-purple-400">02.</span> AI Tool Subscriptions
-              </h2>
-              
-              {/* Add Tool dropdown */}
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center border border-white/10">
+                  <span className="text-xs font-bold text-gray-400 font-mono">02</span>
+                </div>
+                <h2 className="text-xl font-display font-bold text-white">AI Subscriptions Grid</h2>
+              </div>
+
+              {/* Add Tool Dropdown */}
               {availableToolsToAdd.length > 0 && (
                 <div className="relative">
                   <select
-                    value=""
+                    value={selectedAddId}
                     onChange={(e) => {
                       if (e.target.value) {
                         handleAddTool(e.target.value);
-                        e.target.value = "";
                       }
                     }}
-                    className="px-4 py-2.5 rounded-lg bg-purple-500/10 border border-purple-500/30 text-purple-300 hover:bg-purple-500/20 text-sm font-bold flex items-center gap-1 cursor-pointer"
+                    className="pl-4 pr-10 py-2 rounded-lg bg-white/5 border border-white/10 text-gray-200 hover:bg-white/10 text-sm font-medium transition-all cursor-pointer appearance-none"
+                    style={{
+                      backgroundImage: `url("data:image/svg+xml;utf8,<svg fill='%239CA3AF' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>")`,
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 10px center",
+                    }}
                   >
-                    <option value="" disabled className="bg-neutral-900 text-purple-300">Add AI Tool...</option>
+                    <option value="" disabled className="bg-[#0B0B0C]">Add software tool...</option>
                     {availableToolsToAdd.map((id) => (
-                      <option key={id} value={id} className="bg-neutral-900 text-white">
+                      <option key={id} value={id} className="bg-[#111113] text-white">
                         + {PRICING_DATA[id].displayName}
                       </option>
                     ))}
@@ -369,155 +459,282 @@ export default function SpendAuditorPage() {
               )}
             </div>
 
+            {/* Structured Financial Input Rows */}
             {configuredTools.length === 0 ? (
-              <div className="text-center py-12 border-2 border-dashed border-white/5 rounded-xl">
-                <p className="text-gray-500">No tools added yet. Add a tool to start the audit calculations.</p>
+              <div className="text-center py-12 border border-dashed border-[#1A1A1D] rounded-xl bg-white/[0.01]">
+                <p className="text-gray-500 text-sm">Add active AI products to inspect pricing redundancies.</p>
               </div>
             ) : (
-              <AnimatePresence initial={false}>
-                <div className="space-y-4">
-                {configuredTools.map((tool, index) => {
-                  const pricing = PRICING_DATA[tool.toolId];
-                  if (!pricing) return null;
-                  
-                  return (
-                    <motion.div
-                      layout
-                      key={tool.toolId}
-                      initial={{ opacity: 0, y: 12, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                      transition={{ duration: 0.22, ease: "easeOut" }}
-                      className="p-5 rounded-xl border border-white/5 bg-white/[0.02] flex flex-col md:flex-row md:items-center justify-between gap-4 hover:border-purple-500/20 transition-all"
-                    >
-                      <div className="space-y-1 min-w-[150px]">
-                        <h4 className="font-bold text-white text-lg">{pricing.displayName}</h4>
-                        <a 
-                          href={pricing.officialUrl} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="text-xs text-gray-500 hover:underline"
-                        >
-                          View Official Rates
-                        </a>
-                      </div>
+              <div className="overflow-x-auto border border-[#1A1A1D] rounded-xl bg-white/[0.01]">
+                <table className="w-full border-collapse text-left">
+                  <thead>
+                    <tr className="border-b border-[#1A1A1D] text-xs font-bold text-gray-500 uppercase tracking-widest bg-white/[0.01]">
+                      <th className="py-4 px-4">Tool</th>
+                      <th className="py-4 px-3">Plan Tier</th>
+                      <th className="py-4 px-3 text-center">Seats</th>
+                      <th className="py-4 px-3 text-right">Rate/Seat</th>
+                      <th className="py-4 px-3 text-right">Total Cost</th>
+                      <th className="py-4 px-4 text-center"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {configuredTools.map((tool, index) => {
+                      const pricing = PRICING_DATA[tool.toolId];
+                      if (!pricing) return null;
+                      const plan = pricing.plans[tool.planId];
+                      const isApi = plan?.isApiDirect || false;
 
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 flex-grow">
-                        {/* Select Plan */}
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Plan</label>
-                          <select
-                            value={tool.planId}
-                            onChange={(e) => handleUpdateTool(index, { planId: e.target.value })}
-                            className="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-white/10 text-white text-sm"
-                          >
-                            {Object.keys(pricing.plans).map((pKey) => (
-                              <option key={pKey} value={pKey}>
-                                {pricing.plans[pKey].name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                      const isExpanded = expandedRow === index;
+                      const info = PLAN_INFO[tool.toolId]?.[tool.planId];
 
-                        {/* Seats Input */}
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Seats</label>
-                          <input
-                            type="number"
-                            min={1}
-                            value={tool.seats}
-                            onChange={(e) => handleUpdateTool(index, { seats: Math.max(1, parseInt(e.target.value, 10) || 1) })}
-                            className="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-white/10 text-white text-sm"
-                          />
-                        </div>
+                      // Warn users about Claude Team (min 5 seats) or ChatGPT Team (min 2 seats)
+                      let inlineWarning = "";
+                      if (tool.toolId === "claude" && tool.planId === "team" && tool.seats < 5) {
+                        inlineWarning = `Claude Team plan requires a 5-seat minimum ($150/mo minimum). Paying for empty seats.`;
+                      } else if (tool.toolId === "chatgpt" && tool.planId === "team" && tool.seats < 2) {
+                        inlineWarning = `ChatGPT Team requires a 2-seat minimum ($60/mo minimum). Paying for empty seats.`;
+                      }
 
-                        {/* Monthly Spend */}
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Monthly Spend ($)</label>
-                          <input
-                            type="number"
-                            min={0}
-                            value={tool.monthlySpend}
-                            onChange={(e) => handleUpdateTool(index, { monthlySpend: Math.max(0, parseFloat(e.target.value) || 0) })}
-                            className="w-full px-3 py-2 rounded-lg bg-neutral-900 border border-white/10 text-white text-sm"
-                          />
-                        </div>
-                      </div>
+                      return (
+                        <React.Fragment key={tool.toolId}>
+                          {/* Main spreadsheet row */}
+                          <tr className="financial-row transition-all align-middle group">
+                            <td className="py-4 px-4 font-semibold text-white">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-display">{pricing.displayName}</span>
+                                <a
+                                  href={pricing.officialUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-xs text-gray-500 hover:text-gray-300 underline mt-0.5"
+                                >
+                                  Official Rates &rarr;
+                                </a>
+                              </div>
+                            </td>
 
-                      <button
-                        onClick={() => handleRemoveTool(index)}
-                        className="p-2.5 rounded-lg border border-red-500/10 hover:border-red-500/30 text-red-400 hover:bg-red-500/5 transition-colors self-end md:self-center"
-                        title="Remove tool"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </motion.div>
-                  );
-                })}
-                </div>
-              </AnimatePresence>
+                            <td className="py-4 px-3">
+                              <select
+                                value={tool.planId}
+                                onChange={(e) => handleUpdateTool(index, { planId: e.target.value })}
+                                className="px-2 py-1.5 rounded-lg border border-[#1F1F22] bg-[#0A0A0C] text-sm font-medium focus:ring-1 focus:ring-white/20 max-w-[140px] truncate"
+                              >
+                                {Object.keys(pricing.plans).map((pKey) => (
+                                  <option key={pKey} value={pKey}>
+                                    {pricing.plans[pKey].name}
+                                  </option>
+                                ))}
+                              </select>
+                            </td>
+
+                            <td className="py-4 px-3 text-center">
+                              <input
+                                type="number"
+                                min={1}
+                                value={tool.seats}
+                                disabled={isApi}
+                                onChange={(e) => handleUpdateTool(index, { seats: Math.max(1, parseInt(e.target.value, 10) || 1) })}
+                                className="w-16 px-2 py-1 rounded-lg border border-white/5 bg-[#111113] text-xs text-center font-mono disabled:opacity-30"
+                              />
+                            </td>
+
+                            <td className="py-4 px-3 text-right font-mono text-xs text-gray-400 tabular-nums">
+                              {isApi ? "PAYG" : `$${plan?.pricePerUserMonth}`}
+                            </td>
+
+                            <td className="py-4 px-3 text-right font-mono text-sm font-semibold text-white tabular-nums">
+                              ${tool.monthlySpend.toLocaleString()}
+                            </td>
+
+                            <td className="py-4 px-4 text-center">
+                              <div className="flex items-center justify-end gap-2">
+                                <button
+                                  onClick={() => setExpandedRow(isExpanded ? null : index)}
+                                  className="p-1 rounded bg-[#0A0A0C] border border-[#1F1F22] hover:border-white/20 text-gray-400 hover:text-white text-xs uppercase font-mono px-2"
+                                  title="Explain plan parameters"
+                                >
+                                  {isExpanded ? "Hide" : "Info"}
+                                </button>
+                                <button
+                                  onClick={() => handleRemoveTool(index)}
+                                  className="p-1.5 rounded-lg border border-red-500/10 hover:border-red-500/30 text-red-400 hover:bg-red-500/5 transition-all"
+                                  title="Remove tool"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* Expanded Plan Info & Intelligent Awareness panel */}
+                          {(isExpanded || inlineWarning) && (
+                            <tr className="bg-white/[0.01]">
+                              <td colSpan={6} className="py-3 px-4 border-b border-[#1A1A1D]">
+                                <div className="space-y-2 text-xs">
+                                  {inlineWarning && (
+                                    <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/20 p-2.5 rounded-lg text-red-400">
+                                      <AlertTriangle className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                                      <p>{inlineWarning}</p>
+                                    </div>
+                                  )}
+                                  {info && isExpanded && (
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-white/[0.02] border border-[#1F1F22] rounded-lg">
+                                      <div className="space-y-1.5">
+                                        <p className="text-sm font-semibold text-gray-200">Tier Features:</p>
+                                        <p className="text-sm text-gray-400 font-light leading-relaxed">{info.desc}</p>
+                                      </div>
+                                      <div className="space-y-1.5">
+                                        <p className="text-sm font-semibold text-gray-200">Target Segment:</p>
+                                        <p className="text-sm text-gray-400 font-light">{info.bestFor}</p>
+                                        {info.warning && (
+                                          <p className="text-sm text-amber-400/90 font-medium mt-1">⚠ {info.warning}</p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
             )}
 
-            {/* Calculate Button */}
-            <div className="pt-4">
+            {/* Calculate Trigger button */}
+            <div className="pt-2">
               <Button
                 onClick={handleCalculateAudit}
                 disabled={configuredTools.length === 0}
-                variant="gradient"
-                size="lg"
-                className="w-full text-lg"
+                className="w-full text-sm font-semibold bg-white hover:bg-gray-100 text-black py-3.5 rounded-lg flex items-center justify-center gap-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
               >
-                <span>Run Instant Spend Audit</span>
-                <ArrowRight className="w-5 h-5" />
+                <span>Compile Audit Engine Breakdown</span>
+                <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Real-time Math Summary Sidebar */}
+        {/* Right Column: Live Insight Engine (Reactive Sidebar) */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="glass-panel rounded-2xl p-6 border border-white/10 relative overflow-hidden">
-            {/* Ambient glowing background orb */}
-            <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 rounded-full blur-2xl -mr-6 -mt-6"></div>
-            
-            <h3 className="text-lg font-bold text-gray-300 uppercase tracking-widest mb-6">Retail Estimate</h3>
-            
-            {/* Spend Stats */}
+          <div className="glass-panel rounded-2xl p-6 border border-[#1F1F22] relative overflow-hidden">
+
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#1F1F22]">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
+                <Activity className="w-3.5 h-3.5 text-gray-400" />
+                Live Insight Engine
+              </h3>
+              <span className="h-2 w-2 rounded-full bg-white/30"></span>
+            </div>
+
+            {/* Live Financial Metrics */}
             <div className="space-y-6">
               <div>
-                <p className="text-gray-500 text-sm font-semibold uppercase">Total Stack Cost</p>
-                <div className="text-3xl font-black text-white mt-1">
-                  ${configuredTools.reduce((acc, t) => acc + t.monthlySpend, 0).toLocaleString()}/mo
+                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Unoptimized Stack Cost</p>
+                <div className="text-3xl font-display font-black text-white mt-1 tabular-nums">
+                  ${totalSpend.toLocaleString()}/mo
                 </div>
               </div>
 
               <div>
-                <p className="text-gray-500 text-sm font-semibold uppercase">Calculated Savings</p>
-                <div className="text-3xl font-black text-cyan-400 mt-1 flex items-center gap-2">
-                  <AnimatedCurrency
-                    value={runAudit(configuredTools, teamSize, primaryUseCase).potentialMonthlySavings}
-                    suffix="/mo"
-                  />
-                  <TrendingDown className="w-6 h-6 text-cyan-400" />
+                <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Identified Redundancies</p>
+                <div className="text-3xl font-display font-black text-white mt-1 flex items-center gap-2 tabular-nums">
+                  <AnimatedCurrency value={potentialSavings} suffix="/mo" />
+                  <TrendingDown className="w-5 h-5 text-gray-400" />
                 </div>
               </div>
 
-              <div className="pt-6 border-t border-white/5 flex items-center justify-between">
+              <div className="pt-6 border-t border-[#1F1F22] flex items-center justify-between">
                 <div>
-                  <p className="text-gray-500 text-xs font-semibold uppercase">Annual Savings Opportunity</p>
-                  <p className="text-xl font-bold text-purple-400 mt-0.5">
-                    <AnimatedCurrency
-                      value={runAudit(configuredTools, teamSize, primaryUseCase).potentialMonthlySavings * 12}
-                      suffix="/yr"
-                    />
+                  <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Annual Cut Potential</p>
+                  <p className="text-lg font-bold text-white mt-0.5 tabular-nums">
+                    <AnimatedCurrency value={annualSavings} suffix="/yr" />
                   </p>
                 </div>
-                
-                <div className="px-2.5 py-1 rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-300 font-bold text-xs">
-                  {configuredTools.reduce((acc, t) => acc + t.monthlySpend, 0) > 0 
-                    ? Math.round((runAudit(configuredTools, teamSize, primaryUseCase).potentialMonthlySavings / configuredTools.reduce((acc, t) => acc + t.monthlySpend, 0)) * 100)
-                    : 0}% Off
+
+                <div className="px-2.5 py-1 rounded bg-white/5 border border-white/10 text-gray-300 font-mono text-xs font-semibold">
+                  {totalSpend > 0 ? Math.round((potentialSavings / totalSpend) * 100) : 0}% Waste
                 </div>
+              </div>
+            </div>            {/* Live Redundant Detections */}
+            <div className="mt-8 space-y-3 pt-6 border-t border-[#1F1F22]">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Logic Warnings</p>
+              
+              <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
+                {configuredTools.length === 0 ? (
+                  <p className="text-gray-600 text-sm font-light">Stack is empty. Waiting for inputs...</p>
+                ) : (
+                  <>
+                    {/* Check copilot + cursor redundancy */}
+                    {configuredTools.some(t => t.toolId === "cursor") && configuredTools.some(t => t.toolId === "copilot") && (
+                      <div className="border border-[#1F1F22] bg-white/[0.02] p-3 rounded-lg text-gray-300 text-sm flex gap-2.5">
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
+                        <div>
+                          <p className="font-semibold text-white">Editor Redundancy Found</p>
+                          <p className="text-sm text-gray-400 mt-0.5 font-light">Running both Cursor & Copilot subscriptions. Consolidate to Cursor to save ${configuredTools.find(t => t.toolId === "copilot")?.monthlySpend || 0}/mo.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Check ChatGPT + Claude redundancy */}
+                    {configuredTools.some(t => t.toolId === "chatgpt") && configuredTools.some(t => t.toolId === "claude") && (primaryUseCase === "coding" || primaryUseCase === "writing") && (
+                      <div className="border border-[#1F1F22] bg-white/[0.02] p-3 rounded-lg text-gray-300 text-sm flex gap-2.5">
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
+                        <div>
+                          <p className="font-semibold text-white">Dual LLM Subscriptions</p>
+                          <p className="text-sm text-gray-400 mt-0.5 font-light">ChatGPT Plus and Claude Pro active. Consolidate providers based on team focus.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Check Claude Team minimum seats */}
+                    {configuredTools.some(t => t.toolId === "claude" && t.planId === "team" && t.seats < 5) && (
+                      <div className="border border-[#1F1F22] bg-white/[0.02] p-3 rounded-lg text-gray-300 text-sm flex gap-2.5">
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
+                        <div>
+                          <p className="font-semibold text-white">Claude Team Seat Minimum</p>
+                          <p className="text-sm text-gray-400 mt-0.5 font-light">Billed for minimum 5 seats. Downgrade to Pro to eliminate fees.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Check ChatGPT Team minimum seats */}
+                    {configuredTools.some(t => t.toolId === "chatgpt" && t.planId === "team" && t.seats < 2) && (
+                      <div className="border border-[#1F1F22] bg-white/[0.02] p-3 rounded-lg text-gray-300 text-sm flex gap-2.5">
+                        <AlertTriangle className="w-4 h-4 flex-shrink-0 mt-0.5 text-amber-400" />
+                        <div>
+                          <p className="font-semibold text-white">ChatGPT Team Seat Minimum</p>
+                          <p className="text-sm text-gray-400 mt-0.5 font-light">Billed for minimum 2 seats. Downgrade to Plus.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* API credits prompt caching promotion */}
+                    {configuredTools.some(t => (t.toolId === "openai_api" || t.toolId === "anthropic_api") && t.monthlySpend >= 100) && (
+                      <div className="border border-[#1F1F22] bg-white/[0.02] p-3 rounded-lg text-gray-300 text-sm flex gap-2.5">
+                        <Sparkles className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400" />
+                        <div>
+                          <p className="font-semibold text-white">Prompt Caching Available</p>
+                          <p className="text-sm text-gray-400 mt-0.5 font-light">API spend qualifies for prompt caching, cutting token costs by 30%.</p>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Default state when tools exist but no redundancies */}
+                    {!configuredTools.some(t => t.toolId === "cursor" && configuredTools.some(t => t.toolId === "copilot")) &&
+                     !configuredTools.some(t => t.toolId === "chatgpt" && configuredTools.some(t => t.toolId === "claude") && (primaryUseCase === "coding" || primaryUseCase === "writing")) &&
+                     !configuredTools.some(t => t.toolId === "claude" && t.planId === "team" && t.seats < 5) &&
+                     !configuredTools.some(t => t.toolId === "chatgpt" && t.planId === "team" && t.seats < 2) && (
+                      <div className="border border-[#1F1F22] bg-white/[0.02] p-3 rounded-lg text-sm flex gap-2.5">
+                        <Check className="w-4 h-4 flex-shrink-0 mt-0.5 text-gray-400" />
+                        <p className="text-gray-300 font-light">No configuration conflicts detected yet.</p>
+                      </div>
+                     )}
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -525,331 +742,81 @@ export default function SpendAuditorPage() {
 
       </div>
 
-      {/* --- Audit Results Section --- */}
+      {/* --- Simulated Auditing Checklist / Loading State --- */}
       <AnimatePresence>
-      {isAudited && auditResults && (
-        <motion.div
-          id="results"
-          className="space-y-8 scroll-mt-24"
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 16 }}
-          transition={{ duration: 0.45, ease: "easeOut" }}
-        >
-          <hr className="border-white/5 my-12" />
-
-          {/* Hero Banner Savings */}
-          <div className="glass-panel rounded-3xl p-8 sm:p-12 relative overflow-hidden bg-gradient-to-br from-neutral-900/50 via-neutral-900/10 to-neutral-900/50 border border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.12)]">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/5 rounded-full blur-[100px] pointer-events-none"></div>
-            
-            <div className="max-w-4xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-8 relative">
-              <div className="space-y-4">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold">
-                  <span>AUDIT SUMMARY CALCULATED</span>
-                </div>
-                <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight">
-                  {auditResults.potentialMonthlySavings > 0 ? (
-                    <>
-                      You are wasting <span className="text-cyan-400">${auditResults.potentialMonthlySavings.toLocaleString()}</span> monthly on retail licenses.
-                    </>
-                  ) : (
-                    "Your AI stack spend is clean. Nice work!"
-                  )}
-                </h2>
-                <p className="text-gray-400 text-base sm:text-lg">
-                  Below is the plan-by-plan consolidation roadmap built by our Spend Engine.
-                </p>
+        {isSimulating && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex items-center justify-center p-4"
+          >
+            <div className="glass-panel max-w-lg w-full rounded-2xl p-6 sm:p-8 space-y-6 border border-[#1F1F22]">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-5 h-5 animate-spin text-white" />
+                <h3 className="text-lg font-display font-bold text-white">Running Financial Audit...</h3>
               </div>
 
-              <div className="flex flex-col items-start md:items-end justify-center min-w-[200px]">
-                <p className="text-gray-500 text-xs font-bold uppercase tracking-widest">Total Savings</p>
-                <div className="text-5xl sm:text-7xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-cyan-400 mt-1">
-                  <AnimatedCurrency value={auditResults.potentialAnnualSavings} />
-                </div>
-                <p className="text-purple-400 text-sm font-semibold tracking-wider uppercase mt-1">potential annual cut</p>
-              </div>
-            </div>
-          </div>
-
-          {/* AI-Generated Personalized Summary */}
-          <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-purple-500/10 shadow-[0_4px_30px_rgba(168,85,247,0.03)] space-y-4">
-            <div className="flex items-center justify-between border-b border-white/5 pb-4">
-              <h3 className="font-extrabold text-white text-lg flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-purple-400" />
-                AI Spend Strategy Review
-              </h3>
-              <span className="text-xs uppercase tracking-widest text-gray-500 font-bold">Gemini</span>
-            </div>
-
-            {generatingSummary ? (
-              <div className="flex items-center gap-3 py-6 text-gray-400">
-                <Loader2 className="w-5 h-5 animate-spin text-purple-400" />
-                <span className="text-sm">Analyzing subscription metrics...</span>
-              </div>
-            ) : (
-              <p className="text-gray-300 text-base leading-relaxed italic">
-                &ldquo;{aiSummary || "Review complete. Details loaded below."}&rdquo;
-              </p>
-            )}
-          </div>
-
-          {/* Per-Tool breakdown list */}
-          <div className="space-y-4">
-            <h3 className="text-xl font-bold text-white">Itemized Audit & Recommendations</h3>
-            
-            {auditResults.recommendations.length === 0 ? (
-              <div className="p-6 rounded-2xl border border-white/5 bg-white/[0.01] text-center text-gray-500">
-                🚀 No optimization opportunities identified. Your subscriptions align with your seat counts and use cases.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-4">
-                {auditResults.recommendations.map((rec: AuditRecommendation, i: number) => {
-                  const isCredex = rec.toolId === "credex";
-                  
+              <div className="space-y-3">
+                {simulationChecklist.map((logText, idx) => {
+                  const isActive = simulationStep === idx;
+                  const isDone = simulationStep > idx;
                   return (
-                    <motion.div
-                      layout
-                      key={i}
-                      initial={{ opacity: 0, x: -12 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.04, duration: 0.24 }}
-                      className={`p-6 rounded-2xl border transition-all flex flex-col md:flex-row md:items-center justify-between gap-6 ${
-                        isCredex 
-                          ? "border-purple-500/30 bg-purple-950/10 shadow-[0_0_15px_rgba(168,85,247,0.05)]" 
-                          : "border-white/5 bg-white/[0.02]"
+                    <div
+                      key={idx}
+                      className={`flex items-center gap-3 transition-opacity duration-200 ${
+                        isDone ? "opacity-100" : isActive ? "opacity-100" : "opacity-25"
                       }`}
                     >
-                      <div className="space-y-2 max-w-2xl">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider ${
-                            isCredex ? "bg-purple-500/20 text-purple-300 border border-purple-500/30" : "bg-neutral-800 text-gray-300"
-                          }`}>
-                            {rec.toolName}
-                          </span>
-                          <span className="text-xs text-gray-500">Plan: {rec.currentPlan}</span>
-                        </div>
-                        <h4 className="font-bold text-white text-lg">{rec.recommendedAction}</h4>
-                        <p className="text-gray-400 text-sm leading-relaxed">{rec.reason}</p>
-                      </div>
-
-                      <div className="flex flex-row md:flex-col items-center md:items-end justify-between md:justify-center min-w-[120px] pt-4 md:pt-0 border-t md:border-t-0 border-white/5">
-                        <span className="text-xs text-gray-500 font-bold uppercase">Monthly Cut</span>
-                        <span className="text-2xl font-black text-cyan-400 mt-0.5">-${rec.monthlySavings}/mo</span>
-                      </div>
-                    </motion.div>
+                      {isDone ? (
+                        <CheckCircle2 className="w-4 h-4 text-white flex-shrink-0" />
+                      ) : isActive ? (
+                        <Loader2 className="w-4 h-4 text-white animate-spin flex-shrink-0" />
+                      ) : (
+                        <div className="w-4 h-4 rounded-full border border-gray-700 flex-shrink-0" />
+                      )}
+                      <span className={`text-sm font-mono ${
+                        isActive ? "text-white font-medium" : isDone ? "text-gray-400" : "text-gray-700"
+                      }`}>
+                        {logText}
+                      </span>
+                    </div>
                   );
                 })}
               </div>
-            )}
-          </div>
-
-          {/* Lead Capture or Consultation Widget */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start pt-6">
-            
-            {/* Lead Capture Gate */}
-            <div className="glass-panel rounded-2xl p-6 sm:p-8 space-y-6">
-              <div className="space-y-2">
-                <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Mail className="w-5 h-5 text-purple-400" />
-                  Save & Export Audit
-                </h3>
-                <p className="text-gray-400 text-sm">
-                  Lock in this report and receive a PDF copy via email. We will also monitor prices and notify you when new savings apply.
-                </p>
-              </div>
-
-              {leadCaptured ? (
-                <div className="p-6 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-center space-y-4">
-                  <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center mx-auto text-cyan-400">
-                    <Check className="w-6 h-6" />
-                  </div>
-                  <h4 className="font-bold text-white text-lg">Audit Successfully Saved!</h4>
-                  <p className="text-gray-400 text-xs leading-relaxed">
-                    A confirmation email has been dispatched with your PDF download. You can share this report with your team using the link below:
-                  </p>
-                  
-                  {shareUrl && (
-                    <div className="pt-2">
-                      <div className="flex items-center gap-2 bg-neutral-900 border border-white/10 rounded-lg p-2.5">
-                        <input 
-                          type="text" 
-                          readOnly 
-                          value={shareUrl} 
-                          className="bg-transparent border-0 flex-grow text-xs text-purple-300 font-mono outline-none focus:ring-0 focus:shadow-none p-0"
-                        />
-                        <button 
-                          onClick={() => {
-                            navigator.clipboard.writeText(shareUrl);
-                            alert("Copied to clipboard!");
-                          }}
-                          className="px-3 py-1 bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 rounded text-xs font-semibold cursor-pointer"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="gradient" size="lg" className="w-full">
-                      <span>Export Audit Report</span>
-                      <Share2 className="w-4 h-4" />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Save & Export Audit</DialogTitle>
-                      <DialogDescription>
-                        Receive the audit link by email and let Credex know where to send savings follow-up.
-                      </DialogDescription>
-                    </DialogHeader>
-
-                <form onSubmit={handleCaptureLead} className="space-y-4">
-                  {/* Honeypot field (hidden) */}
-                  <input
-                    type="text"
-                    name="website_verify"
-                    style={{ display: "none" }}
-                    tabIndex={-1}
-                    value={websiteVerify}
-                    onChange={(e) => setWebsiteVerify(e.target.value)}
-                    placeholder="Leave empty"
-                  />
-
-                  <div className="space-y-1">
-                    <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      placeholder="you@company.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="w-full px-4 py-3 rounded-lg bg-neutral-900 border border-white/10 text-white font-medium"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Company Name</label>
-                      <input
-                        type="text"
-                        placeholder="Acme Inc."
-                        value={companyName}
-                        onChange={(e) => setCompanyName(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg bg-neutral-900 border border-white/10 text-white font-medium"
-                      />
-                    </div>
-
-                    <div className="space-y-1">
-                      <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Role</label>
-                      <input
-                        type="text"
-                        placeholder="CTO / Engineering Lead"
-                        value={role}
-                        onChange={(e) => setRole(e.target.value)}
-                        className="w-full px-4 py-3 rounded-lg bg-neutral-900 border border-white/10 text-white font-medium"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-2 pt-2">
-                    <input
-                      type="checkbox"
-                      id="opt-in"
-                      checked={newsletterOptIn}
-                      onChange={(e) => setNewsletterOptIn(e.target.checked)}
-                      className="mt-1 rounded border-white/10 bg-neutral-900 text-purple-600 focus:ring-purple-500"
-                    />
-                    <label htmlFor="opt-in" className="text-xs text-gray-500 leading-normal">
-                      Notify me of new developer/LLM optimizations and discounts.
-                    </label>
-                  </div>
-
-                  <Button
-                    type="submit"
-                    disabled={isSubmittingLead}
-                    className="w-full"
-                  >
-                    {isSubmittingLead ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>Exporting Audit Report...</span>
-                      </>
-                    ) : (
-                      <>
-                        <span>Get Report via Email</span>
-                        <Share2 className="w-4 h-4" />
-                      </>
-                    )}
-                  </Button>
-                </form>
-                  </DialogContent>
-                </Dialog>
-              )}
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-            {/* Book consultation Widget for high-savings audits ( >$500 savings ) */}
-            {auditResults.potentialMonthlySavings >= 500 ? (
-              <div className="glass-panel rounded-2xl p-6 sm:p-8 border border-purple-500/20 shadow-[0_0_20px_rgba(168,85,247,0.06)] space-y-6">
-                <div className="space-y-2">
-                  <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs font-bold uppercase tracking-wider">
-                    ⚡ High Savings Eligible
-                  </div>
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Calendar className="w-5 h-5 text-purple-400" />
-                    Book Credex Consultation
-                  </h3>
-                  <p className="text-gray-400 text-sm">
-                    Because your potential savings exceed <strong>$500/month</strong>, you qualify to purchase direct API credits at up to <strong>30% off retail</strong> via Credex. Select a time below to secure your discount.
-                  </p>
-                </div>
-
-                 {/* Real Calendly Embed */}
-                 <div className="border border-white/10 rounded-xl overflow-hidden bg-neutral-950/60 p-4">
-                   <div className="w-full h-[630px]">
-                     <iframe src="https://calendly.com/credex/15min" width="100%" height="100%" frameBorder="0"></iframe>
-                   </div>
-                 </div>
-                 {/* Calendly script */}
-                 <script src="https://assets.calendly.com/assets/external/widget.js" async></script>
-              </div>
-            ) : (
-              // Spent well / minimal savings widget
-              <div className="glass-panel rounded-2xl p-6 sm:p-8 space-y-6">
-                <div className="space-y-2">
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-cyan-400" />
-                    Secure Your Credits Portfolio
-                  </h3>
-                  <p className="text-gray-400 text-sm">
-                    Even if your current stack is optimal, SaaS pricing shifts. Lock in access to Credex credits today. When your team scales or you pivots to API volumes, buy your tokens with our real, pre-negotiated discount.
-                  </p>
-                </div>
-                
-                <Button
-                  asChild
-                  variant="outline"
-                  size="lg"
-                  className="w-full"
-                >
-                <a 
-                  href="https://credex.rocks" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                >
-                  <span>Explore Credex Inventory</span>
-                  <ArrowRight className="w-4 h-4" />
-                </a>
-                </Button>
-              </div>
-            )}
-
-          </div>
-
-        </motion.div>
-      )}
+      {/* --- Audit Results Section --- */}
+      <AnimatePresence>
+        {isAudited && auditResults && (
+          <AuditReportSection
+            auditResults={auditResults}
+            configuredTools={configuredTools}
+            teamSize={teamSize}
+            primaryUseCase={primaryUseCase}
+            aiSummary={aiSummary}
+            generatingSummary={generatingSummary}
+            leadCaptured={leadCaptured}
+            shareUrl={shareUrl}
+            exportDialogOpen={exportDialogOpen}
+            setExportDialogOpen={setExportDialogOpen}
+            handleCaptureLead={handleCaptureLead}
+            isSubmittingLead={isSubmittingLead}
+            email={email}
+            setEmail={setEmail}
+            companyName={companyName}
+            setCompanyName={setCompanyName}
+            role={role}
+            setRole={setRole}
+            newsletterOptIn={newsletterOptIn}
+            setNewsletterOptIn={setNewsletterOptIn}
+            websiteVerify={websiteVerify}
+            setWebsiteVerify={setWebsiteVerify}
+          />
+        )}
       </AnimatePresence>
 
     </div>
