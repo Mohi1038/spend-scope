@@ -85,36 +85,36 @@ export async function POST(request: Request) {
     const publicUrl = `${request.headers.get("origin") || "https://spendscope.rocks"}/${auditSlug}`;
 
     const emailHtml = `
-      <div style="font-family: Arial, sans-serif; background-color: #0c0c0e; color: #f3f4f6; padding: 40px 20px; border-radius: 8px; max-width: 600px; margin: 0 auto;">
+      <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #000000; color: #E5E7EB; padding: 40px 20px; max-width: 600px; margin: 0 auto;">
         <div style="text-align: center; margin-bottom: 30px;">
-          <h2 style="color: #a855f7; font-size: 28px; margin: 0;">SpendScope</h2>
-          <p style="color: #9ca3af; font-size: 14px;">Powered by Credex</p>
+          <h2 style="color: #ffffff; font-size: 24px; font-weight: 800; margin: 0; letter-spacing: -0.02em;">SpendScope</h2>
+          <p style="color: #71717A; font-size: 13px; margin: 5px 0 0 0;">Powered by Credex</p>
         </div>
         
-        <div style="background-color: #111216; border: 1px solid #1f2937; padding: 30px; border-radius: 8px;">
-          <h3 style="margin-top: 0; color: #ffffff;">Hey there,</h3>
-          <p style="line-height: 1.6; color: #d1d5db;">Thank you for auditing your AI software spend. We have calculated your potential optimization strategy:</p>
+        <div style="background-color: #0A0A0C; border: 1px solid #1F1F22; padding: 30px; border-radius: 12px;">
+          <h3 style="margin-top: 0; color: #ffffff; font-size: 18px; font-weight: 700;">Audit Summary</h3>
+          <p style="line-height: 1.6; color: #A1A1AA; font-size: 14px;">We have compiled the financial audit and optimization strategy for your AI stack:</p>
           
-          <div style="margin: 25px 0; padding: 20px; border-radius: 6px; background: linear-gradient(135deg, rgba(168, 85, 247, 0.1) 0%, rgba(6, 182, 212, 0.1) 100%); border-left: 4px solid #a855f7; text-align: center;">
-            <p style="margin: 0; color: #9ca3af; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">Estimated Potential Savings</p>
-            <h1 style="margin: 5px 0 0 0; font-size: 40px; color: #06b6d4;">$${savings}/mo</h1>
-            <p style="margin: 5px 0 0 0; color: #a855f7; font-weight: bold; font-size: 16px;">$${annualSavings.toLocaleString()} / year</p>
+          <div style="margin: 25px 0; padding: 25px 20px; border-radius: 8px; background-color: #000000; border: 1px solid #1F1F22; text-align: center;">
+            <p style="margin: 0; color: #71717A; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;">Estimated Monthly Savings</p>
+            <h1 style="margin: 8px 0; font-size: 44px; font-weight: 800; color: #ffffff; letter-spacing: -0.03em;">$${savings}<span style="font-size: 20px; color: #71717A; font-weight: 400;">/mo</span></h1>
+            <p style="margin: 0; color: #A1A1AA; font-weight: 500; font-size: 14px;">$${annualSavings.toLocaleString()} / year reduction potential</p>
           </div>
 
           ${isHighSavings ? `
-            <div style="margin-bottom: 25px; padding: 15px; border-radius: 6px; background-color: rgba(236, 72, 153, 0.1); border: 1px solid rgba(236, 72, 153, 0.3);">
-              <h4 style="margin: 0 0 5px 0; color: #ec4899;">⚡ High Savings Detected</h4>
-              <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #e5e7eb;">Based on your stack and volume, you qualify for <strong>Credex Discounted Credits</strong>. A Credex advisor will reach out to you within 24 hours to transition your retail licenses to our discounted rates.</p>
+            <div style="margin-bottom: 25px; padding: 15px; border-radius: 8px; background-color: #000000; border: 1px solid #1F1F22;">
+              <h4 style="margin: 0 0 5px 0; color: #ffffff; font-size: 14px; font-weight: 600;">⚡ High Volume Account Discount Eligibility</h4>
+              <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #A1A1AA;">Based on your team size and monthly run rate, you qualify for <strong>Credex Bulk Licenses</strong>. A technical credits specialist will follow up with you to apply direct B2B pricing discounts to your stack.</p>
             </div>
           ` : ""}
 
-          <p style="line-height: 1.6; color: #d1d5db;">You can view and share your detailed audit breakdown anytime using this secure link:</p>
-          <p style="text-align: center; margin: 25px 0;">
-            <a href="${publicUrl}" style="background-color: #a855f7; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">View Full Audit Online</a>
-          </p>
+          <p style="line-height: 1.6; color: #A1A1AA; font-size: 14px; margin-bottom: 20px;">You can view and interact with your full stack delta chart, seat utilization controls, and detailed logic reasoning using this secure link:</p>
+          <div style="text-align: center; margin: 30px 0;">
+            <a href="${publicUrl}" style="background-color: #ffffff; color: #000000; padding: 12px 30px; border-radius: 8px; text-decoration: none; font-weight: 700; font-size: 14px; display: inline-block; box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);">View Interactive Audit online</a>
+          </div>
 
-          <hr style="border: 0; border-top: 1px solid #1f2937; margin: 30px 0;" />
-          <p style="font-size: 12px; color: #6b7280; line-height: 1.5;">This audit is provided by Credex. Credex sources pre-paid unused AI credits from pivots and over-forecasted accounts, selling them to growing startups at massive discounts.</p>
+          <hr style="border: 0; border-top: 1px solid #1F1F22; margin: 30px 0;" />
+          <p style="font-size: 12px; color: #71717A; line-height: 1.6; margin: 0;">This report is sourced by Credex. Credex pools group purchasing capacity and sources pre-paid AI infrastructure credits to offer startups direct, non-dilutive discounts on major models and editors.</p>
         </div>
       </div>
     `;
