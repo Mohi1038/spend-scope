@@ -41,11 +41,11 @@ export default function RootLayout({
         <header className="sticky top-0 z-50 w-full border-b border-white/5 bg-black/40 backdrop-blur-md">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-purple-600 to-cyan-400 flex items-center justify-center font-bold text-black text-lg shadow-[0_0_15px_rgba(168,85,247,0.3)]">
+              <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center font-bold text-black text-lg">
                 S
               </div>
-              <span className="font-extrabold text-xl tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-                Spend<span className="text-purple-400">Scope</span>
+              <span className="font-extrabold text-xl tracking-tight text-white">
+                Spend<span className="text-zinc-400">Scope</span>
               </span>
             </div>
             
@@ -57,7 +57,7 @@ export default function RootLayout({
                 className="text-xs uppercase tracking-widest text-gray-400 hover:text-white transition-colors flex items-center gap-1.5"
               >
                 <span>Sourced by</span>
-                <span className="font-black px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/20 text-purple-400 hover:bg-purple-500/20 transition-colors">
+                <span className="font-black px-2 py-0.5 rounded bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors">
                   Credex
                 </span>
               </a>
@@ -73,7 +73,7 @@ export default function RootLayout({
         {/* Global Footer */}
         <footer className="border-t border-white/5 bg-black/80 py-8 text-center text-sm text-gray-500">
           <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <p>© {new Date().getFullYear()} SpendScope. Sourced by <a href="https://credex.rocks" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">Credex</a>.</p>
+            <p>© {new Date().getFullYear()} SpendScope. Sourced by <a href="https://credex.rocks" target="_blank" rel="noopener noreferrer" className="text-white hover:underline font-semibold">Credex</a>.</p>
             <div className="flex gap-6">
               <a href="#" className="hover:text-gray-300 transition-colors">Privacy Policy</a>
               <a href="#" className="hover:text-gray-300 transition-colors">Terms of Service</a>
