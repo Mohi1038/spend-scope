@@ -52,17 +52,41 @@ function CostFrontierGraph({
   const centerX = width / 2;
 
   return (
-    <div className="relative border border-[#1F1F22] rounded-xl bg-[#0A0A0C] p-5">
+    <div className="relative border border-[#1F1F22] rounded-xl bg-[#0A0A0C] p-5 chart-panel-money">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Cost Efficiency Frontier</h4>
           <p className="text-xs text-gray-600 mt-0.5">Your stack vs. the optimal AI spend curve</p>
         </div>
-        <span className="text-[10px] font-mono text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/8">Economics Model</span>
+        <span className="text-[10px] font-mono bg-metallic-green-badge px-2 py-0.5 rounded">Economics Model</span>
       </div>
 
       <div className="relative h-[240px] w-full">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+          <defs>
+            <linearGradient id="metallicGreenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#f0fdfa" />
+              <stop offset="12%" stopColor="#ccfbf1" />
+              <stop offset="28%" stopColor="#5eead4" />
+              <stop offset="48%" stopColor="#14b8a6" />
+              <stop offset="68%" stopColor="#0d9488" />
+              <stop offset="88%" stopColor="#064e3b" />
+              <stop offset="100%" stopColor="#022c22" />
+            </linearGradient>
+            <linearGradient id="tealOptGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ecfeff" />
+              <stop offset="22%" stopColor="#99f6e4" />
+              <stop offset="55%" stopColor="#2dd4bf" />
+              <stop offset="100%" stopColor="#0f766e" />
+            </linearGradient>
+            <filter id="metalPointGlow" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.5" result="blur" />
+              <feMerge>
+                <feMergeNode in="blur" />
+                <feMergeNode in="SourceGraphic" />
+              </feMerge>
+            </filter>
+          </defs>
           {/* Grid lines */}
           <line x1={padding} y1={getY(maxVal * 0.75)} x2={width - padding} y2={getY(maxVal * 0.75)} stroke="#1F1F22" strokeDasharray="3 3" />
           <line x1={padding} y1={getY(maxVal * 0.5)} x2={width - padding} y2={getY(maxVal * 0.5)} stroke="#1F1F22" strokeDasharray="3 3" />
@@ -76,7 +100,8 @@ function CostFrontierGraph({
           <path
             d={`M ${padding} ${getY(0)} Q ${centerX} ${getY(optimizedSpend * 0.7)} ${width - padding} ${getY(optimizedSpend * 1.5)}`}
             fill="none"
-            stroke="rgba(255,255,255,0.15)"
+            stroke="url(#metallicGreenGrad)"
+            strokeOpacity={0.55}
             strokeWidth={1.5}
             strokeDasharray="4 3"
           />
@@ -93,14 +118,14 @@ function CostFrontierGraph({
             <circle cx={centerX} cy={currentY} r={hoveredPoint === "current" ? 8 : 6} fill="#71717A" className="transition-all" />
           </g>
 
-          {/* Optimized Stack Point (amber dot) */}
+          {/* Optimized Stack Point (teal dot) */}
           <g className="cursor-pointer" onMouseEnter={() => setHoveredPoint("optimized")} onMouseLeave={() => setHoveredPoint(null)}>
-            <circle cx={centerX} cy={optimizedY} r={hoveredPoint === "optimized" ? 8 : 6} fill="#D4D4D8" className="transition-all" />
+            <circle cx={centerX} cy={optimizedY} r={hoveredPoint === "optimized" ? 8 : 6} fill="url(#tealOptGrad)" filter="url(#metalPointGlow)" stroke="rgba(255,255,255,0.35)" strokeWidth={0.75} className="transition-all" />
           </g>
 
-          {/* Credex Point (white dot) */}
+          {/* Credex Point (metallic green) */}
           <g className="cursor-pointer" onMouseEnter={() => setHoveredPoint("credex")} onMouseLeave={() => setHoveredPoint(null)}>
-            <circle cx={centerX} cy={credexY} r={hoveredPoint === "credex" ? 8 : 6} fill="#FFFFFF" className="transition-all" />
+            <circle cx={centerX} cy={credexY} r={hoveredPoint === "credex" ? 9 : 7} fill="url(#metallicGreenGrad)" filter="url(#metalPointGlow)" stroke="rgba(255,255,255,0.5)" strokeWidth={1} className="transition-all" />
           </g>
         </svg>
 
@@ -132,11 +157,11 @@ function CostFrontierGraph({
                   <p className="font-semibold text-white">Retail Optimized Stack</p>
                   <div className="flex justify-between text-gray-400 text-xs">
                     <span>Monthly Cost</span>
-                    <span className="font-mono text-white">${optimizedSpend}</span>
+                    <span className="font-mono text-money-accent">${optimizedSpend}</span>
                   </div>
                   <div className="flex justify-between text-gray-400 text-xs">
                     <span>Efficiency</span>
-                    <span className="font-mono text-gray-300">92%</span>
+                    <span className="font-mono text-money-accent">92%</span>
                   </div>
                   <p className="text-xs text-gray-500 border-t border-[#1F1F22] pt-2 mt-1">Seats consolidated, redundancy removed.</p>
                 </>
@@ -146,11 +171,11 @@ function CostFrontierGraph({
                   <p className="font-semibold text-white">Credex Credits Position</p>
                   <div className="flex justify-between text-gray-400 text-xs">
                     <span>Monthly Cost</span>
-                    <span className="font-mono text-white">${credexSpend}</span>
+                    <span className="font-mono text-metallic-green">${credexSpend}</span>
                   </div>
                   <div className="flex justify-between text-gray-400 text-xs">
                     <span>Efficiency</span>
-                    <span className="font-mono text-gray-300">100%</span>
+                    <span className="font-mono text-money-accent">100%</span>
                   </div>
                   <p className="text-xs text-gray-500 border-t border-[#1F1F22] pt-2 mt-1">Pre-purchased bulk credits applied.</p>
                 </>
@@ -162,8 +187,8 @@ function CostFrontierGraph({
 
       <div className="flex justify-center gap-6 mt-3 text-xs text-gray-500 font-mono">
         <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#71717A]" /> Current</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-[#D4D4D8]" /> Optimized</span>
-        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-white" /> Credex</span>
+        <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full border border-white/30" style={{ background: "linear-gradient(145deg, #ecfeff, #2dd4bf, #0f766e)" }} /> Optimized</span>
+        <span className="flex items-center gap-1.5"><span className="w-2 h-2 rounded-full dot-metallic-green" /> Credex</span>
       </div>
     </div>
   );
@@ -222,17 +247,42 @@ function WaterfallGraph({
   let currentAccumulator = totalSpend;
 
   return (
-    <div className="relative border border-[#1F1F22] rounded-xl bg-[#0A0A0C] p-5">
+    <div className="relative border border-[#1F1F22] rounded-xl bg-[#0A0A0C] p-5 chart-panel-money">
       <div className="mb-4 flex items-center justify-between">
         <div>
           <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider font-mono">Savings Cost Bridge</h4>
           <p className="text-xs text-gray-600 mt-0.5">Step-by-step audit reductions from current to optimized</p>
         </div>
-        <span className="text-[10px] font-mono text-gray-500 bg-white/5 px-2 py-0.5 rounded border border-white/8">Financial Audit</span>
+        <span className="text-[10px] font-mono bg-metallic-green-badge px-2 py-0.5 rounded">Financial Audit</span>
       </div>
 
       <div className="relative h-[240px] w-full">
         <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-full">
+          <defs>
+            <linearGradient id="waterfallSavingsGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#f0fdfa" />
+              <stop offset="18%" stopColor="#5eead4" />
+              <stop offset="45%" stopColor="#14b8a6" />
+              <stop offset="72%" stopColor="#0d9488" />
+              <stop offset="100%" stopColor="#064e3b" />
+            </linearGradient>
+            <linearGradient id="waterfallCredexGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="20%" stopColor="#ccfbf1" />
+              <stop offset="50%" stopColor="#2dd4bf" />
+              <stop offset="100%" stopColor="#047857" />
+            </linearGradient>
+            <linearGradient id="waterfallFinalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ffffff" />
+              <stop offset="25%" stopColor="#a7f3d0" />
+              <stop offset="55%" stopColor="#34d399" />
+              <stop offset="100%" stopColor="#065f46" />
+            </linearGradient>
+            <linearGradient id="waterfallRetailGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#ecfeff" />
+              <stop offset="100%" stopColor="#0f766e" />
+            </linearGradient>
+          </defs>
           {/* Axis */}
           <line x1={padding} y1={height - padding} x2={width - padding} y2={height - padding} stroke="#1A1A1D" strokeWidth={1.5} />
           <line x1={padding} y1={padding} x2={padding} y2={height - padding} stroke="#1A1A1D" strokeWidth={1.5} />
@@ -251,7 +301,7 @@ function WaterfallGraph({
             } else if (step.type === "end") {
               y = getY(step.value);
               barH = getY(0) - y;
-              color = step.label.includes("Final") ? "#FFFFFF" : "#A1A1AA"; // white final vs zinc-400 retail
+              color = step.label.includes("Final") ? "url(#waterfallFinalGrad)" : "url(#waterfallRetailGrad)";
             } else {
               // change
               const prevY = getY(currentAccumulator);
@@ -260,7 +310,7 @@ function WaterfallGraph({
               
               y = prevY;
               barH = nextY - prevY; // goes down, so nextY is larger than prevY in SVG coordinate scale
-              color = step.toolId === "credex" ? "#E4E4E7" : "#71717A"; // zinc-200 for Credex savings step, zinc-500 for other savings
+              color = step.toolId === "credex" ? "url(#waterfallCredexGrad)" : "url(#waterfallSavingsGrad)";
             }
 
             const isHovered = hoveredIdx === idx;
@@ -327,7 +377,7 @@ function WaterfallGraph({
               <p className="font-bold text-gray-300">{steps[hoveredIdx].label}</p>
               <div className="flex justify-between text-gray-400">
                 <span>Value impact:</span>
-                <span className="font-mono text-white font-semibold">
+                <span className={`font-mono font-semibold ${steps[hoveredIdx].type === "change" ? "text-metallic-green" : "text-money-accent"}`}>
                   {steps[hoveredIdx].type === "change"
                     ? `-$${Math.abs(steps[hoveredIdx].value)}/mo`
                     : `$${steps[hoveredIdx].value}/mo`}
@@ -402,7 +452,7 @@ function SeatUtilizationCard({
         {totalWastedSpend > 0 && (
           <div className="text-right">
             <p className="text-xs text-gray-500">Idle cost</p>
-            <p className="text-base font-mono font-bold text-white">${totalWastedSpend}<span className="text-gray-500 text-xs font-normal">/mo</span></p>
+            <p className="text-base font-mono font-bold text-metallic-green">${totalWastedSpend}<span className="text-gray-500 text-xs font-normal">/mo</span></p>
           </div>
         )}
       </div>
@@ -439,7 +489,7 @@ function SeatUtilizationCard({
                 <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[4px] rounded-full bg-[#1F1F22]" />
                 {/* Active fill */}
                 <div
-                  className="absolute left-0 top-1/2 -translate-y-1/2 h-[4px] rounded-full bg-white transition-all duration-100"
+                  className="absolute left-0 top-1/2 -translate-y-1/2 h-[4px] rounded-full metallic-track-fill transition-all duration-100"
                   style={{ width: `${activePercent}%` }}
                 />
                 {/* Range input overlaid transparently */}
@@ -561,18 +611,18 @@ export function AuditReportSection({
     >
       {/* Layer 1 — Summary Hero */}
       <div className="text-center max-w-3xl mx-auto space-y-6">
-        <span className="text-xs font-semibold font-mono tracking-widest text-gray-400 uppercase px-3 py-1 rounded-full bg-white/5 border border-white/10">
+        <span className="text-xs font-semibold font-mono tracking-widest uppercase px-3 py-1 rounded-full bg-metallic-green-badge">
           Identified Financial Waste
         </span>
         <h2 className="text-5xl sm:text-7xl font-display font-black tracking-tight text-white leading-none">
           You&apos;re overpaying
         </h2>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 font-mono font-black text-white text-6xl sm:text-8xl tabular-nums">
-          <span>${monthlySavings.toLocaleString()}</span>
-          <span className="text-gray-600 text-3xl font-display font-light">/ month</span>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 font-mono font-black text-6xl sm:text-8xl tabular-nums">
+          <span className="text-metallic-green">${monthlySavings.toLocaleString()}</span>
+          <span className="text-gray-500 text-3xl font-display font-light">/ month</span>
         </div>
         <p className="text-gray-500 font-mono text-base tracking-wide">
-          Annual opportunity: <span className="text-gray-200 font-semibold">${annualSavings.toLocaleString()}</span>
+          Annual opportunity: <span className="text-money-accent font-semibold">${annualSavings.toLocaleString()}</span>
         </p>
       </div>
 
@@ -602,7 +652,7 @@ export function AuditReportSection({
           <div className="space-y-5">
             <div className="flex items-center justify-between border-b border-[#1F1F22] pb-4">
               <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-widest flex items-center gap-1.5 font-mono">
-                <Sparkles className="w-4 h-4 text-gray-400" />
+                <Sparkles className="w-4 h-4 icon-metallic-green" />
                 AI Spend Strategy Review
               </h4>
               <span className="text-[10px] uppercase tracking-wider text-gray-500 font-mono font-medium">Gemini 3.5</span>
@@ -654,7 +704,7 @@ export function AuditReportSection({
                       <h4 className="text-base font-semibold text-white">{pricing?.displayName || rec.toolName}</h4>
                       <p className="text-xs text-gray-500 mt-0.5 font-mono">{rec.currentPlan} · {paidSeats} seats</p>
                     </div>
-                    <span className="text-xs font-mono text-gray-300 font-semibold bg-white/5 border border-white/10 px-2 py-1 rounded">
+                    <span className="text-xs font-mono font-semibold bg-metallic-green-badge px-2 py-1 rounded">
                       -{savingsPct}% cost
                     </span>
                   </div>
@@ -667,7 +717,7 @@ export function AuditReportSection({
                     </div>
                     <div className="space-y-1">
                       <p className="text-xs text-gray-500 uppercase tracking-wider">Target spend</p>
-                      <p className="text-base font-mono font-semibold text-white">${paidTotal - rec.monthlySavings}<span className="text-gray-500 text-xs">/mo</span></p>
+                      <p className="text-base font-mono font-semibold text-money-accent">${paidTotal - rec.monthlySavings}<span className="text-gray-500 text-xs">/mo</span></p>
                     </div>
                   </div>
 
@@ -690,7 +740,7 @@ export function AuditReportSection({
                   {/* Savings footer */}
                   <div className="pt-1 flex justify-between items-center">
                     <span className="text-xs text-gray-500 font-mono">Monthly savings</span>
-                    <span className="font-mono text-white font-semibold text-base">+${rec.monthlySavings}<span className="text-gray-500 text-xs">/mo</span></span>
+                    <span className="font-mono text-metallic-green font-semibold text-base">+${rec.monthlySavings}<span className="text-gray-500 text-xs">/mo</span></span>
                   </div>
                 </div>
               );

@@ -95,18 +95,18 @@ export default async function SharedAuditPage({ params }: SharePageProps) {
 
       {/* Hero Savings Callout (Clear + Calm) */}
       <div className="text-center max-w-3xl mx-auto space-y-6">
-        <span className="text-[10px] font-semibold font-mono tracking-widest text-gray-400 uppercase px-3 py-1 rounded-full bg-white/5 border border-white/10">
+        <span className="text-[10px] font-semibold font-mono tracking-widest uppercase px-3 py-1 rounded-full bg-metallic-green-badge">
           Identified Spend Redundancies
         </span>
         <h1 className="text-4xl sm:text-6xl font-display font-black tracking-tight text-white leading-none">
           {monthlySavings > 0 ? "Potential Stack Savings" : "Optimal Stack Verified"}
         </h1>
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 font-mono font-black text-white text-6xl sm:text-7xl tabular-nums">
-          <span>${monthlySavings.toLocaleString()}</span>
-          <span className="text-gray-600 text-2xl font-display font-light">/ month</span>
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-6 font-mono font-black text-6xl sm:text-7xl tabular-nums">
+          <span className="text-metallic-green">${monthlySavings.toLocaleString()}</span>
+          <span className="text-gray-500 text-2xl font-display font-light">/ month</span>
         </div>
         <p className="text-gray-500 font-mono text-sm tracking-wide">
-          Annual opportunity: <span className="text-gray-200 font-semibold">${annualSavings.toLocaleString()}</span>
+          Annual opportunity: <span className="text-money-accent font-semibold">${annualSavings.toLocaleString()}</span>
         </p>
         <p className="text-gray-500 text-xs font-light">
           Workspace parameters: <strong className="text-gray-300 font-normal">{audit.team_size} users</strong> &bull; Core workflow focus: <strong className="text-gray-300 font-normal capitalize">{audit.primary_use_case}</strong>
@@ -120,14 +120,14 @@ export default async function SharedAuditPage({ params }: SharePageProps) {
           <p className="text-xl font-bold font-mono text-white tabular-nums">${totalSpend.toLocaleString()}/mo</p>
         </div>
 
-        <div className="glass-panel rounded-2xl p-5 border border-[#1F1F22] space-y-1">
+        <div className="glass-panel rounded-2xl p-5 border border-[#1F1F22] space-y-1 chart-panel-money">
           <span className="text-xs text-gray-500 font-bold uppercase font-mono tracking-wider">Optimized Target Spend</span>
-          <p className="text-xl font-bold font-mono text-white tabular-nums">${optimizedSpend.toLocaleString()}/mo</p>
+          <p className="text-xl font-bold font-mono text-money-accent tabular-nums">${optimizedSpend.toLocaleString()}/mo</p>
         </div>
 
-        <div className="glass-panel rounded-2xl p-5 border border-[#1F1F22] space-y-1">
+        <div className="glass-panel rounded-2xl p-5 border border-[#1F1F22] space-y-1 chart-panel-money">
           <span className="text-xs text-gray-500 font-bold uppercase font-mono tracking-wider">Audit efficiency gain</span>
-          <p className="text-xl font-bold font-mono text-white">
+          <p className="text-xl font-bold font-mono text-metallic-green">
             {totalSpend > 0 ? Math.round((monthlySavings / totalSpend) * 100) : 0}% Savings
           </p>
         </div>
@@ -180,7 +180,7 @@ export default async function SharedAuditPage({ params }: SharePageProps) {
 
                   <div className="pt-2 flex justify-between items-center text-sm border-t border-white/[0.02]">
                     <span className="text-gray-500 font-mono">Estimated Savings:</span>
-                    <span className="font-mono text-white font-bold text-sm">-${rec.monthlySavings}/mo</span>
+                    <span className="font-mono text-metallic-green font-bold text-sm">-${rec.monthlySavings}/mo</span>
                   </div>
                 </div>
               );

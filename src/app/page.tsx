@@ -620,42 +620,42 @@ export default function SpendAuditorPage() {
 
         {/* Right Column: Live Insight Engine (Reactive Sidebar) */}
         <div className="lg:col-span-4 space-y-6">
-          <div className="glass-panel rounded-2xl p-6 border border-[#1F1F22] relative overflow-hidden">
+          <div className="glass-panel rounded-2xl p-6 border border-[#1F1F22] relative overflow-hidden insight-panel-money">
 
             <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#1F1F22]">
               <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-widest font-mono flex items-center gap-1.5">
-                <Activity className="w-3.5 h-3.5 text-gray-400" />
+                <Activity className="w-3.5 h-3.5 icon-metallic-green" />
                 Live Insight Engine
               </h3>
-              <span className="h-2 w-2 rounded-full bg-white/30"></span>
+              <span className="h-2.5 w-2.5 rounded-full dot-metallic-green animate-pulse"></span>
             </div>
 
             {/* Live Financial Metrics */}
             <div className="space-y-6">
               <div>
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Unoptimized Stack Cost</p>
-                <div className="text-3xl font-display font-black text-white mt-1 tabular-nums">
+                <div className="text-3xl font-display font-black text-gray-200 mt-1 tabular-nums">
                   ${totalSpend.toLocaleString()}/mo
                 </div>
               </div>
 
               <div>
                 <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Identified Redundancies</p>
-                <div className="text-3xl font-display font-black text-white mt-1 flex items-center gap-2 tabular-nums">
-                  <AnimatedCurrency value={potentialSavings} suffix="/mo" />
-                  <TrendingDown className="w-5 h-5 text-gray-400" />
+                <div className="text-3xl font-display font-black mt-1 flex items-center gap-2 tabular-nums">
+                  <AnimatedCurrency value={potentialSavings} suffix="/mo" className="text-metallic-green" />
+                  <TrendingDown className="w-5 h-5 icon-metallic-green" />
                 </div>
               </div>
 
               <div className="pt-6 border-t border-[#1F1F22] flex items-center justify-between">
                 <div>
                   <p className="text-gray-500 text-xs font-semibold uppercase tracking-wider">Annual Cut Potential</p>
-                  <p className="text-lg font-bold text-white mt-0.5 tabular-nums">
-                    <AnimatedCurrency value={annualSavings} suffix="/yr" />
+                  <p className="text-lg font-bold mt-0.5 tabular-nums">
+                    <AnimatedCurrency value={annualSavings} suffix="/yr" className="text-money-accent" />
                   </p>
                 </div>
 
-                <div className="px-2.5 py-1 rounded bg-white/5 border border-white/10 text-gray-300 font-mono text-xs font-semibold">
+                <div className="px-2.5 py-1 rounded bg-amber-500/10 border border-amber-500/25 text-amber-200/90 font-mono text-xs font-semibold">
                   {totalSpend > 0 ? Math.round((potentialSavings / totalSpend) * 100) : 0}% Waste
                 </div>
               </div>
