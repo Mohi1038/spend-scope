@@ -4,6 +4,9 @@ import React, { useState, useEffect } from "react";
 import { PRICING_DATA } from "@/lib/pricingData";
 import { runAudit, InputToolState, AuditRecommendation, AuditResult } from "@/lib/auditEngine";
 import { AuditReportSection } from "@/components/AuditReportClient";
+import { FaqSection } from "@/components/FaqSection";
+import { PricingRatesSection } from "@/components/PricingRatesSection";
+import { HeroToolLogos } from "@/components/HeroToolLogos";
 import { Button } from "@/components/ui/button";
 import { AnimatePresence, animate, motion } from "framer-motion";
 import {
@@ -348,29 +351,33 @@ export default function SpendAuditorPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow flex flex-col justify-start">
       
-      {/* Premium Stripe-like Header */}
-      <motion.div
-        className="text-center max-w-4xl mx-auto mb-16 space-y-6"
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.45 }}
-      >
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-gray-300 text-xs font-semibold uppercase tracking-wider">
-          <Sparkles className="w-3.5 h-3.5 text-gray-400" />
-          <span>AI Budget Explanation Engine</span>
-        </div>
-        
-        <h1 className="text-4xl sm:text-6xl font-display font-extrabold tracking-tight text-white leading-tight">
-          Audit Your AI Spend.<br />
-          <span className="text-gray-300">
-            Uncover Hidden Logic &amp; Savings.
-          </span>
-        </h1>
-        
-        <p className="text-gray-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
-          SaaS vendors rely on over-provisioned seats and redundant integrations to boost their margins. Drop your stack details below to model immediate downgrades and secure pre-negotiated credits.
-        </p>
-      </motion.div>
+      {/* Hero — logos scattered left/right + metallic copy */}
+      <div className="relative mb-16 pt-14 md:pt-16 min-h-[320px] md:min-h-[380px] lg:min-h-[400px] w-full overflow-visible">
+        <HeroToolLogos />
+
+        <motion.div
+          className="relative z-10 text-center max-w-3xl mx-auto space-y-6 px-8 md:px-20 lg:px-28"
+          initial={{ opacity: 1, y: 0 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+        >
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/15 text-metallic-silver-body text-xs font-semibold uppercase tracking-wider">
+            <Sparkles className="w-3.5 h-3.5 text-gray-300" />
+            <span>AI Budget Explanation Engine</span>
+          </div>
+
+          <h1 className="text-4xl sm:text-6xl font-display font-extrabold tracking-tight leading-tight">
+            <span className="text-metallic-silver block">Audit Your AI Spend.</span>
+            <span className="text-metallic-silver-muted block mt-1 sm:mt-2">
+              Uncover Hidden Logic &amp; Savings.
+            </span>
+          </h1>
+
+          <p className="text-metallic-silver-body text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+            SaaS vendors rely on over-provisioned seats and redundant integrations to boost their margins. Drop your stack details below to model immediate downgrades and secure pre-negotiated credits.
+          </p>
+        </motion.div>
+      </div>
 
       {/* Main Form Dashboard */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
@@ -818,6 +825,10 @@ export default function SpendAuditorPage() {
           />
         )}
       </AnimatePresence>
+
+      <PricingRatesSection />
+
+      <FaqSection />
 
     </div>
   );

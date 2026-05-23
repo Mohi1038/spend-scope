@@ -103,10 +103,59 @@ body::before {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .text-metallic-green {
+  .text-metallic-green,
+  .text-metallic-silver,
+  .text-metallic-silver-muted {
     animation: none;
     background-size: 100% 100%;
   }
+}
+
+/* Hero / marketing copy — white-gray chrome (not green) */
+.text-metallic-silver {
+  background: linear-gradient(
+    105deg,
+    #ffffff 0%,
+    #f9fafb 12%,
+    #e5e7eb 28%,
+    #d1d5db 42%,
+    #f3f4f6 52%,
+    #ffffff 58%,
+    #9ca3af 75%,
+    #e5e7eb 88%,
+    #f9fafb 100%
+  );
+  background-size: 220% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: metal-sheen 9s ease-in-out infinite;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.9));
+}
+
+.text-metallic-silver-muted {
+  background: linear-gradient(
+    180deg,
+    #f3f4f6 0%,
+    #d1d5db 30%,
+    #9ca3af 65%,
+    #6b7280 100%
+  );
+  background-size: 180% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: metal-sheen 10s ease-in-out infinite;
+  filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.85));
+}
+
+.text-metallic-silver-body {
+  color: #c8cdd6;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.8),
+    0 0 24px rgba(255, 255, 255, 0.06);
 }
 
 .text-metallic-green {
