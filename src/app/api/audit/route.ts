@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { runAudit } from "@/lib/auditEngine";
-import { getSupabaseAdmin } from "@/lib/supabaseClient";
+import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 // Helper to generate a random 8-character slug
@@ -35,6 +35,18 @@ export async function POST(request: Request) {
 
     // Run the audit math engine
     const auditResult = runAudit(tools, teamSize, primaryUseCase);
+
+    if (!isSupabaseConfigured()) {
+      console.error("Supabase is not configured — cannot persist audit slug.");
+      return NextResponse.json(
+        {
+          error:
+            "Database is not configured. Set NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY.",
+          auditResult,
+        },
+        { status: 503 }
+      );
+    }
 
     // Save to Supabase
     const db = getSupabaseAdmin();
