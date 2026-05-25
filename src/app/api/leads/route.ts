@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
-import { getSupabaseAdmin } from "@/lib/supabaseClient";
+import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabaseClient";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { getAppOrigin } from "@/lib/appUrl";
 import { Resend } from "resend";
 
 const resendApiKey = process.env.RESEND_API_KEY || "";
+const resendFrom =
+  process.env.RESEND_FROM_EMAIL || "SpendScope Audit <onboarding@resend.dev>";
 const resend = resendApiKey ? new Resend(resendApiKey) : null;
 
 export async function POST(request: Request) {
@@ -32,6 +35,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { error: "Email and auditSlug are required." },
         { status: 400 }
+      );
+    }
+
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json(
+        { error: "Database is not configured on the server." },
+        { status: 503 }
       );
     }
 
@@ -74,6 +84,7 @@ export async function POST(request: Request) {
 
     // 4. Send transactional email via Resend
     let emailSent = false;
+    let emailError: string | null = null;
     const savings = audit.potential_monthly_savings;
     const annualSavings = audit.potential_annual_savings;
     const isHighSavings = savings >= 500;
@@ -82,7 +93,7 @@ export async function POST(request: Request) {
       ? `Your SpendScope AI Spend Audit: Potential Savings of $${annualSavings.toLocaleString()}/year!`
       : `Your SpendScope AI Spend Audit: Stack Verified!`;
 
-    const publicUrl = `${request.headers.get("origin") || "https://spendscope.rocks"}/${auditSlug}`;
+    const publicUrl = `${getAppOrigin(request)}/${auditSlug}`;
 
     const emailHtml = `
       <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #000000; color: #E5E7EB; padding: 40px 20px; max-width: 600px; margin: 0 auto;">
@@ -121,26 +132,38 @@ export async function POST(request: Request) {
 
     if (resend) {
       try {
-        await resend.emails.send({
-          from: "SpendScope Audit <onboarding@resend.dev>", // Or custom domain
+        const { error: sendError } = await resend.emails.send({
+          from: resendFrom,
           to: email,
           subject: emailSubject,
           html: emailHtml,
         });
-        emailSent = true;
+        if (sendError) {
+          emailError = sendError.message;
+          console.error("Resend API error:", sendError);
+        } else {
+          emailSent = true;
+        }
       } catch (emailErr) {
+        emailError =
+          emailErr instanceof Error ? emailErr.message : "Failed to send email.";
         console.error("Resend API error:", emailErr);
       }
     } else {
       console.warn("Resend API key missing. Mocking email delivery to console:");
       console.log(`[MOCK EMAIL TO ${email}] SUBJECT: ${emailSubject}`);
+      emailError = "Email service is not configured (RESEND_API_KEY missing).";
     }
 
     return NextResponse.json(
       {
         success: true,
         emailSent,
-        message: "Lead recorded successfully.",
+        emailError,
+        shareUrl: publicUrl,
+        message: emailSent
+          ? "Lead recorded and email sent."
+          : "Lead recorded. Email could not be delivered — use the share link or print the report.",
       },
       { headers: rateLimit.headers }
     );

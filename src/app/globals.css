@@ -413,6 +413,39 @@ progress::-webkit-progress-value {
   background: transparent;
   height: 24px;
 }
+/* Print / PDF export for audit results */
+@media print {
+  body {
+    background: #fff !important;
+    color: #111 !important;
+    background-image: none !important;
+  }
+
+  body::before {
+    display: none !important;
+  }
+
+  header,
+  footer,
+  .no-print,
+  [data-print-hide="true"] {
+    display: none !important;
+  }
+
+  .audit-report-print {
+    border: none !important;
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+  }
+
+  .audit-report-print * {
+    color: #111 !important;
+    -webkit-text-fill-color: #111 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+}
+
 .custom-slider::-moz-range-thumb {
   height: 16px;
   width: 16px;
