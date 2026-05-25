@@ -557,6 +557,8 @@ export function AuditReportSection({
   setNewsletterOptIn,
   websiteVerify,
   setWebsiteVerify,
+  leadError,
+  leadNotice,
 }: {
   auditResults: AuditResult;
   configuredTools: InputToolState[];
@@ -580,6 +582,8 @@ export function AuditReportSection({
   setNewsletterOptIn: (v: boolean) => void;
   websiteVerify: string;
   setWebsiteVerify: (v: string) => void;
+  leadError?: string;
+  leadNotice?: string;
 }) {
   const [interactiveWastedSpend, setInteractiveWastedSpend] = useState<number>(0);
   const totalSpend = auditResults.totalSpend;
@@ -607,7 +611,7 @@ export function AuditReportSection({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: 10 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="mt-16 space-y-12 border-t border-[#1A1A1D] pt-16"
+      className="audit-report-print mt-16 space-y-12 border-t border-[#1A1A1D] pt-16"
     >
       {/* Layer 1 — Summary Hero */}
       <div className="text-center max-w-3xl mx-auto space-y-6">
@@ -655,7 +659,7 @@ export function AuditReportSection({
                 <Sparkles className="w-4 h-4 icon-metallic-green" />
                 AI Spend Strategy Review
               </h4>
-              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-mono font-medium">Gemini 3.5</span>
+              <span className="text-[10px] uppercase tracking-wider text-gray-500 font-mono font-medium">AI summary</span>
             </div>
 
             {generatingSummary ? (
@@ -784,10 +788,26 @@ export function AuditReportSection({
           </div>
 
           <div>
+            {leadError && !leadCaptured && (
+              <p className="text-xs text-red-400 mb-2" role="alert">
+                {leadError}
+              </p>
+            )}
+
             {leadCaptured ? (
               <div className="rounded-xl border border-[#1F1F22] bg-[#0A0A0C] p-4 text-center text-sm space-y-2">
                 <Check className="w-5 h-5 text-white mx-auto" />
-                <p className="font-bold text-white">Audit report saved and sent.</p>
+                <p className="font-bold text-white">Audit report saved.</p>
+                {leadNotice && (
+                  <p className="text-xs text-gray-400 leading-relaxed">{leadNotice}</p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="text-xs font-semibold text-white underline underline-offset-2 hover:text-gray-300"
+                >
+                  Print / Save as PDF
+                </button>
                 <div className="flex gap-2 items-center bg-[#000000] p-2 rounded border border-[#1F1F22] mt-2">
                   <input type="text" readOnly value={shareUrl} className="flex-grow bg-transparent text-xs font-mono text-gray-400 outline-none border-none" />
                   <button 
@@ -802,7 +822,7 @@ export function AuditReportSection({
                 </div>
               </div>
             ) : (
-              <form onSubmit={handleCaptureLead} className="space-y-3">
+              <form onSubmit={handleCaptureLead} className="space-y-3 no-print">
                 <input
                   type="text"
                   name="website_verify"
