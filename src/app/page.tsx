@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { PRICING_DATA } from "@/lib/pricingData";
 import { runAudit, InputToolState, AuditRecommendation, AuditResult } from "@/lib/auditEngine";
 import { AuditReportSection } from "@/components/AuditReportClient";
@@ -103,6 +104,7 @@ function AnimatedCurrency({
 }
 
 export default function SpendAuditorPage() {
+  const router = useRouter();
   // --- Form State ---
   const [teamSize, setTeamSize] = useState<number>(5);
   const [primaryUseCase, setPrimaryUseCase] = useState<string>("coding");
@@ -139,6 +141,8 @@ export default function SpendAuditorPage() {
   const [role, setRole] = useState<string>("");
   const [newsletterOptIn, setNewsletterOptIn] = useState<boolean>(true);
   const [websiteVerify, setWebsiteVerify] = useState<string>(""); // Honeypot
+  const [leadError, setLeadError] = useState<string>("");
+  const [leadNotice, setLeadNotice] = useState<string>("");
 
   // --- Progressive Auditing Checklist State ---
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
@@ -265,13 +269,30 @@ export default function SpendAuditorPage() {
     }, 350);
   };
 
-  const triggerAuditAPI = async () => {
-    setIsSimulating(false);
-    setIsAudited(true);
-    setGeneratingSummary(true);
+  const fetchAiSummary = async (result: AuditResult) => {
+    try {
+      const summaryRes = await fetch("/api/summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          auditResult: result,
+          teamSize,
+          primaryUseCase,
+        }),
+      });
+      const summaryData = await summaryRes.json();
+      if (summaryData.summary) {
+        setAiSummary(summaryData.summary);
+      }
+    } catch (err) {
+      console.error("Failed to generate AI summary:", err);
+    }
+  };
 
-    const localResult = runAudit(configuredTools, teamSize, primaryUseCase);
-    setAuditResults(localResult);
+  const triggerAuditAPI = async () => {
+    // Keep the loading overlay active until we have a redirect slug
+    setLeadError("");
+    setLeadNotice("");
 
     try {
       const res = await fetch("/api/audit", {
@@ -285,27 +306,43 @@ export default function SpendAuditorPage() {
       });
 
       const auditData = await res.json();
-      if (auditData.slug) {
-        setAuditSlug(auditData.slug);
-        const host = typeof window !== "undefined" ? window.location.origin : "";
-        setShareUrl(`${host}/${auditData.slug}`);
 
-        const summaryRes = await fetch("/api/summary", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            auditResult: auditData.auditResult,
-            teamSize,
-            primaryUseCase,
-          }),
-        });
-        const summaryData = await summaryRes.json();
-        setAiSummary(summaryData.summary);
+      if (res.ok && auditData.slug) {
+        // SUCCESS: Redirect instantly to the dedicated results page
+        router.push(`/${auditData.slug}`);
+        // The router.push transition will handle clearing the home page state
+      } else {
+        // DB SAVE FAILED: Fallback to showing results on the home page
+        setIsSimulating(false);
+        setIsAudited(true);
+        setGeneratingSummary(true);
+        
+        if (auditData.auditResult) {
+          setAuditResults(auditData.auditResult);
+          await fetchAiSummary(auditData.auditResult);
+        } else {
+          const localResult = runAudit(configuredTools, teamSize, primaryUseCase);
+          setAuditResults(localResult);
+          await fetchAiSummary(localResult);
+        }
+        
+        setLeadError(
+          auditData.error ||
+            "Could not save your shareable audit link. Results shown are local-only."
+        );
+        setGeneratingSummary(false);
       }
     } catch (err) {
       console.error("Failed to run full audit API pipeline:", err);
-      setAiSummary("Unable to connect to Gemini. Using static local calculation result.");
-    } finally {
+      setIsSimulating(false);
+      setIsAudited(true);
+      setGeneratingSummary(true);
+      
+      const localResult = runAudit(configuredTools, teamSize, primaryUseCase);
+      setAuditResults(localResult);
+      await fetchAiSummary(localResult);
+      
+      setLeadError("Network error while saving audit. Results are shown locally.");
       setGeneratingSummary(false);
     }
   };
@@ -315,7 +352,14 @@ export default function SpendAuditorPage() {
     e.preventDefault();
     if (!email) return;
 
+    if (!auditSlug) {
+      setLeadError("No saved audit link yet. Run the audit again, then try exporting.");
+      return;
+    }
+
     setIsSubmittingLead(true);
+    setLeadError("");
+    setLeadNotice("");
 
     try {
       const res = await fetch("/api/leads", {
@@ -331,12 +375,33 @@ export default function SpendAuditorPage() {
         }),
       });
 
-      if (res.ok) {
-        setLeadCaptured(true);
-        setExportDialogOpen(false);
+      const data = await res.json();
+
+      if (!res.ok) {
+        setLeadError(data.error || "Could not save your report. Please try again.");
+        return;
+      }
+
+      setLeadCaptured(true);
+      setExportDialogOpen(false);
+
+      if (data.shareUrl) {
+        setShareUrl(data.shareUrl);
+      }
+
+      if (data.emailSent) {
+        setLeadNotice("Report emailed. Opening print dialog so you can save a PDF copy.");
+        window.setTimeout(() => window.print(), 400);
+      } else {
+        setLeadNotice(
+          data.message ||
+            "Report saved. Email could not be sent — copy the share link below or use Print to save a PDF."
+        );
+        window.setTimeout(() => window.print(), 600);
       }
     } catch (err) {
       console.error("Failed to capture lead:", err);
+      setLeadError("Network error while sending report. Check your connection and try again.");
     } finally {
       setIsSubmittingLead(false);
     }
@@ -352,7 +417,7 @@ export default function SpendAuditorPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 flex-grow flex flex-col justify-start">
       
       {/* Hero — logos scattered left/right + metallic copy */}
-      <div className="relative mb-16 pt-14 md:pt-16 min-h-[320px] md:min-h-[380px] lg:min-h-[400px] w-full overflow-visible">
+      <div className="no-print relative mb-16 pt-14 md:pt-16 min-h-[320px] md:min-h-[380px] lg:min-h-[400px] w-full overflow-visible">
         <HeroToolLogos />
 
         <motion.div
@@ -380,7 +445,7 @@ export default function SpendAuditorPage() {
       </div>
 
       {/* Main Form Dashboard */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
+      <div className="no-print grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
         
         {/* Left Column: Form Table */}
         <div className="lg:col-span-8 space-y-6">
@@ -822,13 +887,16 @@ export default function SpendAuditorPage() {
             setNewsletterOptIn={setNewsletterOptIn}
             websiteVerify={websiteVerify}
             setWebsiteVerify={setWebsiteVerify}
+            leadError={leadError}
+            leadNotice={leadNotice}
           />
         )}
       </AnimatePresence>
 
-      <PricingRatesSection />
-
-      <FaqSection />
+      <div className="no-print">
+        <PricingRatesSection />
+        <FaqSection />
+      </div>
 
     </div>
   );
