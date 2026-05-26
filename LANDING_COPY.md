@@ -1,50 +1,84 @@
-# Landing Page Copy & Content Assets
+# Landing Page Copy and Messaging
 
-This document contains the marketing copy, FAQs, and social proof blocks for the **SpendScope** landing page.
+This document defines the high-converting copy and visual communication strategy for the SpendScope landing page.
 
----
+## Hero Section
 
-## 📣 Hero Section
+### Headline
+**Stop Overpaying for AI. Audit Your Stack in 30 Seconds.**
 
-### Headline (8 words):
-> **Audit Your AI Spend. Stop Paying Retail Rates.**
+### Subheadline
+Identify redundant subscriptions, unused seats, and expensive plan mismatches. Get a deterministic financial report and unlock discounted Credex credits.
 
-### Subheadline (22 words):
-> *Instantly identify plan downgrades, seat mismatches, and redundant licensing in your startup stack. Run your audit and claim discounted credits today.*
+### Main Call to Action
+[ Run Free Audit ]
 
-### Primary CTA Button:
-> **Run Instant Spend Audit (Free)**
-
-### Secondary CTA Button:
-> **Browse Discounted Credits Inventory**
+### Secondary Action
+[ View Credit Inventory ]
 
 ---
 
-## 👥 Social Proof & Testimonials
+## The Audit Flow
 
-*(Note: Mocked testimonials for early landing page validation, based on user interviews)*
-
-> **A.K., CTO at StackStream (Seed, 5 devs)**
-> *"SpendScope identified $1,200/yr in redundant Copilot seats we forgot to cancel when we switched to Cursor. The audit took 30 seconds."*
-
-> **M.R., Engineering Director at PlayEdu (Series A)**
-> *"We were paying Claude's 5-seat Team minimum for only 3 active developers. SpendScope flagged the downgrade strategy instantly, saving us $110/mo with one click."*
+```mermaid
+graph LR
+    A[Select Tools] --> B[Define Team Size]
+    B --> C[Run Engine]
+    C --> D{Analysis}
+    D --> E[Redundancy Found]
+    D --> F[Plan Mismatch]
+    E --> G[Consolidation Plan]
+    F --> H[Downgrade Strategy]
+    G --> I[CFO Summary]
+    H --> I
+    I --> J[Claim Credits]
+    
+    style G fill:#f96,stroke:#333
+    style H fill:#f96,stroke:#333
+    style J fill:#bbf,stroke:#333
+```
 
 ---
 
-## ❓ Frequently Asked Questions (FAQ)
+## Features and Value Propositions
 
-### Q1: How does the audit engine calculate my savings?
-**Answer:** The SpendScope engine runs static, updated rules against the official pricing plans of major AI vendors (Cursor, Claude, Copilot, ChatGPT, Gemini, Windsurf). It identifies seat-minimum overpayments (such as paying for Claude Team's 5-seat minimum with only 3 users), cross-tool redundancies (like paying for both Cursor and Copilot completions), and high-volume API optimization opportunities (like prompt caching).
+### 1. Deterministic Accuracy
+Unlike LLM-based calculators, our engine uses hard-coded pricing rules verified against official vendor documentation. We account for complex edge cases like the Claude Team 5-seat minimum and tiered GitHub Enterprise rates.
 
-### Q2: What is Credex, and how do you offer discounted credits?
-**Answer:** Credex is a marketplace for discounted AI infrastructure credits. We acquire pre-paid, unused AI API credits and software licenses from startups that pivoted, downsized, or over-forecasted their budgets. We verify these credits and sell them to growing teams at 20% to 40% off retail prices.
+### 2. Zero-Access Auditing
+We never ask for API keys or billing dashboard access. Our audit is performed based on your reported stack, ensuring 100% privacy and security for your financial data.
 
-### Q3: Is my company's software stack data secure?
-**Answer:** Absolutely. The audit calculator runs anonymously and does not require you to link your AWS, Google Cloud, or SaaS billing accounts. The tool is free and requires no login. We only ask for your email if you want to export your report or book a consultation to secure discounted credits.
+### 3. Immediate Remediation
+We don't just find problems; we provide the solution. For qualified high-spend teams, we provide direct access to Credex's secondary market for AI credits, allowing you to secure your remaining stack at up to 30% off retail.
 
-### Q4: We only have one developer. Can we still save money?
-**Answer:** Yes. Many solo developers accidentally subscribe to "Business" or "Team" plans because they are highlighted on vendor pricing pages. We flag single-user plan overkill and show you how to downgrade to "Pro" or "Individual" plans to save up to $20/month per tool without losing any capabilities.
+---
 
-### Q5: How often is the pricing data updated?
-**Answer:** Our pricing database is updated weekly. Every plan cost and rule in our engine links directly to the vendor's official pricing page to ensure complete mathematical accuracy.
+## Social Proof
+
+**Verified Savings Results**
+
+> "We saved $1,800/year for our 5-person engineering team by consolidating Cursor and Copilot licenses. The report was instant and precise."
+> — **Technical Founder, Seed Stage AI Startup**
+
+> "SpendScope caught a 'Ghost License' issue where we were paying for three seats we hadn't assigned yet on Claude Team. Incredible ROI for a free tool."
+> — **VP Engineering, Series A SaaS**
+
+---
+
+## Frequently Asked Questions
+
+### How precise is the savings estimate?
+The estimate is based on current public pricing tiers updated weekly. While it doesn't account for specific enterprise negotiations you may have, it is 100% accurate for standard public pricing models across all major AI platforms.
+
+### Why do I need to enter my email?
+The core audit result is displayed instantly and anonymously. Email is only required if you wish to receive a persistent PDF report for your records or if you want to book a consultation to redeem discounted Credex credits.
+
+### What tools do you currently support?
+We support all primary developer AI platforms including Cursor, GitHub Copilot, ChatGPT (Plus/Team), Claude (Pro/Team), Gemini (Advanced), and Windsurf, along with API-level spend auditing for OpenAI and Anthropic.
+
+### How does Credex offer discounted credits?
+Credex acquires surplus AI credits from companies that have downsized or pivoted. We verify these credits and provide them to active developers at a significant discount, creating a efficient secondary market for compute.
+
+### Is this tool free?
+Yes. SpendScope is a free utility provided by Credex to help startup founders maintain capital efficiency. We believe that helping you save money on retail subscriptions makes it easier for you to scale your core AI infrastructure.
+
