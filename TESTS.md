@@ -1,37 +1,54 @@
-# Automated Test Report
+# Automated Test Specifications
 
-This file documents the automated test suite written for the **SpendScope** audit engine.
+This document details the automated testing suite for the SpendScope audit engine, ensuring mathematical precision and rule integrity.
 
-## Test Framework
-- **Framework:** [Vitest](https://vitest.dev/)
-- **Configuration:** Standalone TypeScript test runner.
+## Test Infrastructure
 
-## Running the Tests
-To install dependencies and execute the test runner locally:
+| Component | Specification |
+| :--- | :--- |
+| Framework | Vitest 1.x |
+| Language | TypeScript |
+| Environment | Node.js (Server-side logic testing) |
+| Coverage Target | 100% Core Calculation Logic |
+
+## Execution Protocol
+
+To execute the test suite, run the following commands in the project root:
 
 ```bash
-# Install dependencies
-npm install
-
-# Run the test suite (single run)
+# Production test run
 npm run test
 
-# Run the test suite in watch mode
+# Development watch mode
 npx vitest
 ```
 
-## Test Coverage Summary
+## Core Test Matrix
 
-All tests are located in [`src/lib/__tests__/auditEngine.test.ts`](file:///Users/mohi1038/Desktop/spend-scope/src/lib/__tests__/auditEngine.test.ts).
+All logic verification is centralized in `src/lib/__tests__/auditEngine.test.ts`.
 
-| Test Name | Feature Covered | Assertion/Goal | Status |
-| :--- | :--- | :--- | :--- |
-| **Test Case 1: Redundant Editor Subscriptions** | Editor Redundancies | Asserts that when a user has both Cursor and GitHub Copilot, Copilot is flagged as redundant and recommends consolidation. | **PASSED** |
-| **Test Case 2: Claude Team Seat Minimum Overpay** | SaaS plan minimums | Asserts that if a team has fewer than 5 users on Claude Team, it suggests downgrading to Claude Pro to save empty seat overhead. | **PASSED** |
-| **Test Case 3: Single Seat Plan Overkill** | Plan level mismatch | Asserts that Cursor Business with 1 seat is flagged to downgrade to Cursor Pro, saving $20/month. | **PASSED** |
-| **Test Case 4: API Direct Caching Savings** | API direct spend optimization | Asserts that high API spend (> $100) triggers a recommendation to implement Anthropic or OpenAI prompt caching, cutting costs by 30%. | **PASSED** |
-| **Test Case 5: Already Optimal Stack** | Honest Spent-Well response | Asserts that an optimal stack (e.g. Cursor Pro with 1 seat) produces no savings recommendations and marks `isOptimal` as true. | **PASSED** |
-| **Test Case 6: Credex Credits Qualification** | B2B lead generation loop | Asserts that if remaining direct tool spend exceeds $500/month, the engine injects a 25% savings offer via Credex infrastructure credits. | **PASSED** |
+| ID | Test Scenario | Logic Verified | Validation Criteria |
+| :-- | :--- | :--- | :--- |
+| T01 | Redundant Editor Conflict | Cursor + GitHub Copilot overlap | Flag Copilot as redundant; suggest consolidation |
+| T02 | Plan Floor Minimums | Claude Team (< 5 seats) | Flag empty seat overhead; suggest Pro downgrade |
+| T03 | Tier Mismatch | Single-user Business plans | Flag Business features as unnecessary; suggest Pro |
+| T04 | API Optimization | High-volume API spend (> $100) | Recommend prompt caching implementation |
+| T05 | Optimal Configuration | Validated efficient stack | Return zero recommendations; set `isOptimal: true` |
+| T06 | B2B Conversion Trigger | High-spend qualification (> $500) | Inject discounted Credex credit recommendation |
+
+## Automation & Integrity
+
+```mermaid
+graph TD
+    A[Code Push] --> B[GitHub Actions]
+    B --> C{Run Vitest}
+    C -->|Pass| D[Vercel Deployment]
+    C -->|Fail| E[Block Merge]
+    
+    style C fill:#1e1b4b,stroke:#312e81,color:#818cf8
+    style D fill:#064e3b,stroke:#065f46,color:#34d399
+    style E fill:#451a03,stroke:#78350f,color:#fbbf24
+```
 
 ## Test Run Output (Local Execution)
 

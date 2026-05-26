@@ -1,50 +1,45 @@
-# Metrics & Analytics Framework
+# Metrics and Analytics Framework
 
-This document outlines the telemetry, analytics tracking, and instrumentation plan for **SpendScope**.
+This document defines the telemetry and performance indicators used to measure the efficacy of SpendScope as a lead-generation platform.
 
----
+## Key Performance Indicators
 
-## 🌟 North Star Metric
+| Category | Metric | Definition | Intent |
+| :--- | :--- | :--- | :--- |
+| **North Star** | Qualified Leads | Verified business emails with >$300 addressable savings | Drive Credex revenue pipeline |
+| **Acquisition** | Conversion Rate | Audit Completions / Total Unique Visitors | Measure landing page relevance |
+| **Efficiency** | Capture Rate | Leads Submitted / Audits Completed | Validate audit value perception |
+| **Retention** | Re-audit Rate | Return users over a 90-day period | Track long-term SaaS drift management |
 
-Our North Star metric is **Captured Qualified Leads per Month**.
+## Funnel Instrumentation
 
-### Why this metric?
-SpendScope is a lead-generation asset for **Credex**. Our goal is not daily active usage (DAU), as audit tools are typically used once a quarter. Success is determined by our ability to capture verified business emails from teams with significant, addressable AI overhead.
+Analytics are managed via PostHog to track the user journey through the audit lifecycle.
 
----
+### Primary Event Tracking
+*   `audit_started`: Triggered on initial tool selection (Acquisition).
+*   `audit_engine_executed`: Triggered upon server-side calculation completion (Activation).
+*   `recommendation_interaction`: Tracks which specific logic-flags (e.g., Redundancy, Downgrade) are most viewed.
+*   `lead_conversion`: Final form submission for PDF report and credit access (Conversion).
 
-## 📈 Input Metrics
+## Instrumentation Strategy
 
-The North Star metric is driven by three primary inputs:
+```mermaid
+graph LR
+    A[Visitor] -->|Track: pageview| B[Landing]
+    B -->|Track: audit_init| C[Calculator]
+    C -->|Track: audit_run| D[Results]
+    D -->|Track: lead_conv| E[Lead Database]
+    
+    style B fill:#1e1b4b,stroke:#312e81,color:#818cf8
+    style D fill:#064e3b,stroke:#065f46,color:#34d399
+    style E fill:#451a03,stroke:#78350f,color:#fbbf24
+```
 
-1. **Unique Landing Page Visitors:** 
-   - *Definition:* The total volume of traffic arriving from Hacker News, X, Reddit, and cold outreach.
-   - *Impact:* Expands the top of the funnel.
-2. **Audit Calculation Rate:**
-   - *Definition:* The percentage of landing page visitors who select at least one tool and click "Run Spend Audit".
-   - *Impact:* Measures the interactive appeal of our calculator and gauges friction levels on the form inputs.
-3. **Lead Opt-in Rate:**
-   - *Definition:* The percentage of audited users who submit the lead form to unlock their report or book a consultation.
-   - *Impact:* Measures the perceived value of the audit results.
+## Pivot Thresholds and Decision Matrix
 
----
+Strategic adjustments will be made based on the following performance triggers:
 
-## 🛠️ Analytics Instrumentation Plan
+1.  **Low Conversion (CR < 15%)**: If users exit before running the audit, we will simplify the tool selection grid and pre-populate "Common Stack" defaults.
+2.  **Low Lead Capture (Capture < 10%)**: If audits are run but emails aren't submitted, we will pivot to an "Instant PDF" incentive or move the CFO summary behind a lightweight sign-up.
+3.  **Low Qualified Spend**: If audits reflect low total spend ($<100/mo), the marketing focus will shift from "Startups" to "Early-Stage Agencies."
 
-We will use **PostHog** for product analytics due to its quick setup and event-autocapture.
-
-### Key Events to Instrument:
-- `tool_card_clicked`: Tracks which AI tools (Cursor, Copilot, ChatGPT) are most common.
-- `audit_calculated`: Triggered when the user runs the spend engine, logging the calculated monthly spend and potential savings.
-- `lead_form_submitted`: Logged when the email gate is completed, passing anonymous metadata (company scale, use case, savings tier).
-- `consultation_booking_clicked`: Logs clicks on the calendar widget, measuring purchase intent.
-
----
-
-## 🛑 Pivot Indicator Threshold
-
-If after launching on Hacker News and Reddit we accumulate **500 completed audits** and our **Consultation Booking Rate is < 2%**, we will trigger a pivot.
-
-### Potential Pivot Directions:
-1. **Convert to Self-Serve Bundle Purchase:** If founders are hesitant to book a 15-minute consultation but have high savings, we will pivot the CTA from "Book a Call" to **"Buy a $500 Credit Bundle Instantly"** using a Stripe checkout integration.
-2. **Self-Auditor Integration:** Shift focus from a manual calculator to a read-only integration (e.g. read-only AWS/GCP API billing connections) that runs in the background.
