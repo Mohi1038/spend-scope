@@ -21,7 +21,7 @@ For high-savings cases ($500+/mo), the tool qualifies teams for direct, discount
   </table>
 </div>
 
-- **Live Demo:** [https://spendscope.vercel.app](https://spendscope.vercel.app)
+- **Live Site:** [https://spendscope.vercel.app](https://spendscope.vercel.app)
 
 ---
 
