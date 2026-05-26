@@ -1,53 +1,71 @@
-# AI Prompts Documentation
+# Prompt Engineering & LLM Specifications
 
-This file documents the prompts used for the AI-generated audit summary feature in the **SpendScope** auditor.
+This document details the prompt architecture and orchestration used to generate professional financial narratives from raw audit data.
 
-## Prompt Architecture
+## Narrative Orchestration
 
-We use a combination of a **System Prompt** (defining the persona and constraints) and a **User Prompt** (injecting the dynamic audit data).
+SpendScope utilizes **Gemini 1.5 Flash** to transform deterministic JSON data into a cohesive audit summary.
 
-### 1. System Prompt
-- **Role:** `You are an expert SaaS CFO.`
-- **Goal:** `Write a concise, personalized, objective audit summary. Do not output anything other than the summary paragraph.`
+### Summary Generation Protocol
 
-### 2. User Prompt
+| Objective | Logic | Implementation |
+| :--- | :--- | :--- |
+| **Integrity** | Deterministic Pre-processing | All math is computed in `auditEngine.ts` before reaching the LLM. |
+| **Brevity** | Strict Word Ceiling | Capped at 80 words to maintain UI layout consistency. |
+| **Persona** | Expert SaaS Analyst | Tone is clinical, objective, and devoid of marketing "fluff". |
+
+---
+
+## Technical Specifications
+
+### System Architecture
+The LLM is prompted via a `System Instruction` that defines its operational boundaries.
+
+**System Role Definition:**
+> "Act as a clinical SaaS CFO. Analyze audit JSON. Provide objective guidance. No introductory filler. No emojis. Output raw text only."
+
+### User Prompt Construction
+
+The following template is utilized in `src/app/api/summary/route.ts`:
+
 ```text
-You are a professional SaaS finance expert. Analyze this AI software spend audit:
-- Team Size: {{teamSize}}
-- Primary Use Case: {{primaryUseCase}}
-- Total Monthly Spend: ${{totalSpend}}
-- Potential Monthly Savings: ${{potentialMonthlySavings}}
-- Is Stack Already Optimal: {{isOptimal}}
-- Recommendations: {{recommendationsJSON}}
+AUDIT_DATA:
+- Current Monthly Spend: ${{totalSpend}}
+- Potential Savings: ${{potentialSavings}}
+- Engineering Team Size: {{teamSize}}
+- Core Focus: {{primaryUseCase}}
+- Logic Flags: {{recommendationsJSON}}
 
-Write a personalized audit summary paragraph for the user. 
-Guidelines:
-1. Keep it under 100 words.
-2. Sound professional, objective, and action-oriented. Do not praise the user or use generic filler.
-3. Specifically mention their primary use case '{{primaryUseCase}}' and team size of {{teamSize}}.
-4. Highlight the major savings actions they can take (e.g. downgrades or redundancies).
-5. Mention Credex credits if their savings or spend is significant (savings > $100/mo or spend > $300/mo).
-6. Return ONLY the paragraph text. Do not wrap in markdown quotes or code blocks.
+INSTRUCTION:
+Synthesize a single-paragraph executive summary (75 words max). 
+Focus on the direct relationship between the team size and the identified 
+plan redundancies. If savings exceed $150, mention Credex bulk credit 
+eligibility as the primary path for further optimization.
 ```
 
 ---
 
-## Design Decisions & Rationale
+## Prompt Evaluation & Safety
 
-- **Structured System Persona:** Restricting Gemini to a "SaaS CFO" prevents it from writing overly verbose, conversational, or sycophantic intros (like *"Congratulations on using AI tools! Here is a summary..."*). Financial reports need to be direct and quantitative.
-- **Strict Length Cap:** Startup founders are busy. A summary over 100 words decreases readability.
-- **Dynamic Token Injection:** Passing the raw list of recommendations as JSON gives the LLM the exact context of what the engine did, permitting it to write personalized sentences like *"Consolidating your Cursor and Copilot licensing is the primary step to reducing your coding spend."*
+| Constraint | Enforcement Method | Rationale |
+| :--- | :--- | :--- |
+| **Zero Hallucination** | Data Injection | LLM cannot generate new spending figures; it only reports values provided in the JSON. |
+| **Design Stability** | Character Limit | Ensures the "Executive Summary" card does not cause layout shifts in the UI. |
+| **Tone Control** | Negative Prompting | Explicitly forbids "Good job!" or "Great news!" to maintain auditor credibility. |
 
----
+## AI Reliability Mermaid
 
-## What Didn't Work (Iterative Refinement)
+```mermaid
+graph TD
+    A[Raw Tool Selections] --> B[TypeScript Audit Engine]
+    B -->|Integer Math| C[Audit Result JSON]
+    C --> D[Gemini 1.5 Flash]
+    D -->|Constraint: Professional| E[Final CFO Narrative]
+    
+    style B fill:#1e1b4b,stroke:#312e81,color:#818cf8
+    style D fill:#064e3b,stroke:#065f46,color:#34d399
+    style E fill:#451a03,stroke:#78350f,color:#fbbf24
+```
 
-1. **Attempting Math in LLM:**
-   - *Failure:* Originally, we tried feeding the raw list of tools and seat prices into the LLM and asking it to calculate the savings.
-   - *Why it failed:* LLMs are notoriously unreliable for arithmetic on edge-cases (like Claude Team's 5-seat minimum). It frequently hallucinated calculations and suggested incorrect plan rates.
-   - *Resolution:* We shifted all mathematical calculations to a deterministic TypeScript engine (`src/lib/auditEngine.ts`), and used the LLM *exclusively* for editorial summarization. Knowing when **not** to use AI is a critical engineering decision.
-   
-2. **Generic Role Prompts:**
-   - *Failure:* Using a generic prompt resulted in summaries that included conversational pleasantries, bulleted lists, and markdown headers.
-   - *Why it failed:* This broke the visual layout on the results screen, where we reserved a specific glassmorphic card for a single-paragraph summary block.
-   - *Resolution:* Added strict guidelines (`Return ONLY the paragraph text. Do not wrap in markdown quotes...`) and fixed temperature at `0.3` to minimize creative formatting.
+
+
