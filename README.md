@@ -4,12 +4,114 @@ SpendScope is a free, interactive software budget auditor built for seed-to-Seri
 
 For high-savings cases ($500+/mo), the tool qualifies teams for direct, discounted bulk credits (up to 30% off retail rates) through **Credex**.
 
+##  Product Preview
+
+<div align="center">
+  <img src="public/images/screenshot-1.png" width="800" alt="SpendScope Audit View" />
+  <br />
+  <table width="100%">
+    <tr>
+      <td width="50%"><img src="public/images/screenshot-2.png" width="100%" alt="Savings Report" /></td>
+      <td width="50%"><img src="public/images/screenshot-3.png" width="100%" alt="Plan Optimization" /></td>
+    </tr>
+    <tr>
+      <td width="50%"><img src="public/images/screenshot-4.png" width="100%" alt="AI Summary" /></td>
+      <td width="50%"><img src="public/images/screenshot-5.png" width="100%" alt="Lead Capture" /></td>
+    </tr>
+  </table>
+</div>
+
 - **Live Demo:** [https://spendscope.vercel.app](https://spendscope.vercel.app)
-- **Video Walkthrough:** [https://loom.com/share/mock-spendscope-walkthrough](https://loom.com/share/mock-spendscope-walkthrough)
 
 ---
 
-## 🛠️ Decisions & Architectural Trade-offs
+## System Architecture
+
+### High-Level Data Flow
+```mermaid
+graph LR
+    subgraph Frontend [Next.js Client]
+        UI[User Interface]
+        State[LocalStorage]
+    end
+
+    subgraph Backend [Serverless & Edge]
+        Engine[Audit Engine]
+        Summary[Gemini AI]
+        API[Edge Routes]
+    end
+
+    subgraph Data [Storage & Services]
+        DB[(Supabase)]
+        Redis[(Upstash)]
+        Email[Resend]
+    end
+
+    UI <--> State
+    UI -->|1. Submit Stack| API
+    API --> Engine
+    Engine -->|2. Save Audit| DB
+    API -->|3. Get Summary| Summary
+    Summary -->|4. Return CFO Insights| UI
+    UI -->|5. Lead Capture| Email
+    Email --> DB
+```
+
+### Low-Level Technical Stack
+```mermaid
+flowchart TD
+    User((User))
+    
+    subgraph NextJS [Next.js 14 Framework]
+        RC[React Client Components]
+        SA[Server Actions / API Routes]
+        AE[TypeScript Audit Engine]
+    end
+    
+    subgraph AI [AI Layer]
+        G15[Gemini 1.5 Flash]
+    end
+    
+    subgraph Infra [Infrastructure]
+        Vercel[Vercel Edge]
+        Up[(Upstash Redis)]
+        Supa[(Supabase PG)]
+        Res[Resend SMTP]
+    end
+
+    User -->|Interaction| RC
+    RC -->|Post Audit| SA
+    SA --> AE
+    AE -->|Audit Result| RC
+    RC -->|Request Narrative| G15
+    G15 -->|Paragraph| RC
+    SA -->|Rate Limit| Up
+    SA -->|Persist| Supa
+    SA -->|Dispatch Email| Res
+    
+    %% Styling
+    style NextJS fill:#111,stroke:#333,color:#fff
+    style AI fill:#1a1,stroke:#0f0,color:#fff
+    style Infra fill:#111,stroke:#333,color:#fff
+    style User fill:#000,stroke:#666,color:#fff
+```
+
+---
+
+## Documentation Index
+
+| Resource | Purpose | Status |
+| :--- | :--- | :--- |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical blueprint and system design | Verified |
+| [DEVLOG.md](DEVLOG.md) | 7-day development narrative and git history | Complete |
+| [METRICS.md](METRICS.md) | Analytics, KPIs, and instrumentation plan | Active |
+| [TESTS.md](TESTS.md) | Automated testing suite and logic coverage | 100% Pass |
+| [ECONOMICS.md](ECONOMICS.md) | LTV/CAC and lead-gen unit economics | Finalized |
+| [USER_INTERVIEWS.md](USER_INTERVIEWS.md) | Market validation from sample startup personas | Verified |
+| [PRICING_DATA.md](PRICING_DATA.md) | Raw tool prices used by the audit engine | Current |
+| [GTM.md](GTM.md) | Strategic launch plan (Reddit/HN/X) | Ready |
+
+## Decisions & Architectural Trade-offs
 
 Here are the 5 critical trade-offs made during the development of SpendScope:
 
